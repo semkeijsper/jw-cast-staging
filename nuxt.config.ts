@@ -1,0 +1,84 @@
+// https://nuxt.com/docs/api/configuration/nuxt-config
+export default defineNuxtConfig({
+  compatibilityDate: '2024-11-01',
+
+  // Client-side only — no SSR
+  ssr: false,
+
+  modules: ['vuetify-nuxt-module', '@pinia/nuxt', '@nuxt/eslint'],
+
+  app: {
+    // GitHub Pages SPA: handle history-mode routing via 404.html redirect
+    head: {
+      title: 'JW Cast',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+        { name: 'google', content: 'notranslate' },
+        { name: 'title', content: 'JW Cast' },
+        {
+          name: 'description',
+          content:
+            'Cast jw.org videos to your TV with subtitles of any language, or download the video and subtitle files to use with a media player such as VLC.',
+        },
+        {
+          name: 'keywords',
+          content:
+            "jw.org subtitles, jw.org chromecast subtitles, jw.org download subtitles, jw cast, jw-cast, jw.org ondertiteling, jw ondertiteling, jehovah's witnesses convention subtitles",
+        },
+        { name: 'robots', content: 'index, follow' },
+      ],
+      link: [
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900',
+        },
+        {
+          rel: 'stylesheet',
+          href: 'https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css',
+        },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/assets/apple-touch-icon.png' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/assets/favicon-32x32.png' },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/assets/favicon-16x16.png' },
+        { rel: 'manifest', href: '/assets/site.webmanifest' },
+        { rel: 'mask-icon', href: '/assets/safari-pinned-tab.svg', color: '#4a6da7' },
+        { rel: 'shortcut icon', href: '/favicon.ico' },
+      ],
+      script: [
+        {
+          // Google Analytics
+          innerHTML: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-EBSJ0TYTPY');`,
+        },
+        {
+          src: 'https://www.googletagmanager.com/gtag/js?id=G-EBSJ0TYTPY',
+          async: true,
+        },
+        {
+          // Google Cast Sender SDK — calls window.__onGCastApiAvailable when ready
+          src: 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1',
+          async: true,
+        },
+      ],
+    },
+  },
+
+  css: ['plyr/dist/plyr.css', 'swiper/css', 'swiper/css/navigation', 'swiper/css/scrollbar'],
+
+  vuetify: {
+    vuetifyOptions: {
+      theme: {
+        themes: {
+          light: { colors: { primary: '#4a6da7' } },
+          dark: { colors: { primary: '#4a6da7' } },
+        },
+      },
+      icons: {
+        defaultSet: 'mdi',
+      },
+    },
+  },
+
+  typescript: {
+    strict: true,
+  },
+})
