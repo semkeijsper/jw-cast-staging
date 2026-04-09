@@ -32,7 +32,7 @@ const media = computed<Video[]>(() => {
 });
 
 const categoryUrl = computed(() => {
-  const base = `${store.mediatorUrl}/categories/${store.getSiteLanguage.code}/${props.categoryName}?detailed=1&clientType=www`;
+  const base = `${store.mediatorUrl}/categories/${store.getSiteLanguage!.code}/${props.categoryName}?detailed=1&clientType=www`;
   return props.limit ? `${base}&limit=${props.limit}` : base;
 });
 

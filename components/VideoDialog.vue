@@ -40,7 +40,6 @@
         <video
           ref="playerEl"
           controls
-          crossorigin
           playsinline
           :poster="videoPoster"
           style="width: 100%; height: 100%; object-fit: cover"
@@ -80,15 +79,15 @@
         </v-container>
 
         <v-card-actions v-if="xs">
-          <CastButton :video-media="videoMedia" :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
+          <ButtonCast :video-media="videoMedia" :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
         </v-card-actions>
         <v-card-actions>
           <template v-if="!xs">
-            <CastButton :video-media="videoMedia" :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
+            <ButtonCast :video-media="videoMedia" :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
             <v-spacer />
           </template>
-          <VideoButton :video-media="videoMedia" />
-          <SubtitleButton :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
+          <ButtonVideo :video-media="videoMedia" />
+          <ButtonSubtitle :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
         </v-card-actions>
       </v-card-text>
     </v-card>
@@ -97,6 +96,7 @@
 
 <script setup lang="ts">
 import axios from 'axios';
+import type { Track } from 'plyr';
 import { useDisplay } from 'vuetify';
 import type { Language, MediaFile, Video } from '~/types';
 
@@ -106,7 +106,7 @@ const router = useRouter();
 const { xs, smAndDown } = useDisplay();
 
 const playerEl = ref<HTMLVideoElement | null>(null);
-let player: any = null;
+let player: Plyr | undefined = undefined;
 
 const loading = ref(true);
 const videoMedia = ref<Video | null>(null);
@@ -118,7 +118,7 @@ const dialog = computed({
 });
 
 const videoLanguage = computed({
-  get: () => store.getVideoLanguage.locale,
+  get: () => store.getVideoLanguage!.locale,
   set: (v: string) => {
     if (!v) return;
     store.setVideoLanguage(v);
@@ -126,7 +126,7 @@ const videoLanguage = computed({
 });
 
 const subtitleLanguage = computed({
-  get: () => store.getSubtitleLanguage.locale,
+  get: () => store.getSubtitleLanguage!.locale,
   set: (v: string) => {
     if (!v) return;
     store.setSubtitleLanguage(v);
@@ -138,7 +138,7 @@ const videoPoster = computed(
 );
 
 const jwOrgUrl = computed(() => {
-  const { locale } = store.getSiteLanguage;
+  const { locale } = store.getSiteLanguage!;
   const { primaryCategory, languageAgnosticNaturalKey } =
     store.selectedVideo ?? videoMedia.value ?? {};
   return `https://www.jw.org/finder?locale=${locale}&category=${primaryCategory}&lank=${languageAgnosticNaturalKey}`;
@@ -176,19 +176,21 @@ async function loadMediaItems() {
   if (!videoMedia.value) {
     requests.push(
       axios
-        .get<{ media: Video[] }>(mediaUrl(store.getVideoLanguage))
+        .get<{ media: Video[] }>(mediaUrl(store.getVideoLanguage!))
         .then(({ data }) => {
-          [videoMedia.value] = data.media;
-          if (!store.selectedVideo) store.setSelectedVideo(videoMedia.value);
+          const [media] = data.media;
+          if (media) videoMedia.value = media;
+          if (!store.selectedVideo && media) store.setSelectedVideo(media);
         }),
     );
   }
   if (!subtitleMedia.value) {
     requests.push(
       axios
-        .get<{ media: Video[] }>(mediaUrl(store.getSubtitleLanguage))
+        .get<{ media: Video[] }>(mediaUrl(store.getSubtitleLanguage!))
         .then(({ data }) => {
-          [subtitleMedia.value] = data.media;
+          const [media] = data.media;
+          if (media) subtitleMedia.value = media;
         }),
     );
   }
@@ -203,27 +205,27 @@ async function loadPlayer() {
   const { default: Plyr } = await import('plyr');
   if (player) player.destroy();
 
-  const tracks: object[] = [];
+  const tracks: Track[] = [];
   if (captionUrl.value) {
     tracks.push({
       kind: 'captions',
-      label: languageLabel(store.getVideoLanguage),
-      srcLang: store.getVideoLanguage.locale,
+      label: languageLabel(store.getVideoLanguage!),
+      srcLang: store.getVideoLanguage!.locale,
       src: captionUrl.value,
     });
   }
   if (subtitleUrl.value) {
     tracks.push({
       kind: 'subtitles',
-      label: languageLabel(store.getSubtitleLanguage),
-      srcLang: store.getSubtitleLanguage.locale,
+      label: languageLabel(store.getSubtitleLanguage!),
+      srcLang: store.getSubtitleLanguage!.locale,
       src: subtitleUrl.value,
     });
   }
 
   player = new Plyr(playerEl.value, {
     quality: { default: 720, options: [720, 480, 360, 240, 144] },
-    captions: { active: true, language: store.getSubtitleLanguage.locale, update: true },
+    captions: { active: true, language: store.getSubtitleLanguage!.locale, update: true },
   });
 
   player.source = {
@@ -272,10 +274,10 @@ watch(
     videoMedia.value = null;
     subtitleMedia.value = null;
     // Pre-fill from selectedVideo if language matches
-    if (store.getSiteLanguage.locale === store.getVideoLanguage.locale) {
+    if (store.getSiteLanguage!.locale === store.getVideoLanguage!.locale) {
       videoMedia.value = video;
     }
-    if (store.getSiteLanguage.locale === store.getSubtitleLanguage.locale) {
+    if (store.getSiteLanguage!.locale === store.getSubtitleLanguage!.locale) {
       subtitleMedia.value = video;
     }
     loadMediaItems();

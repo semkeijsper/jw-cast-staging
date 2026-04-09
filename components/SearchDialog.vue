@@ -191,13 +191,13 @@ async function fetchVideo(langCode: string | undefined, lank: string | undefined
     `${store.mediatorUrl}/media-items/${langCode}/${lank}?clientType=www`,
   );
   const [video] = data.media;
-  store.setSelectedVideo(video);
+  store.setSelectedVideo(video!);
   store.setVideoDialog(true);
 }
 
 async function fetchResponse(query: string) {
   isLoading.value = true;
-  const url = `${store.searchUrl}/${store.getSiteLanguage.code}/videos?sort=${sort.value}&offset=${offset.value}&limit=${limit}&q=${encodeURIComponent(query)}`;
+  const url = `${store.searchUrl}/${store.getSiteLanguage!.code}/videos?sort=${sort.value}&offset=${offset.value}&limit=${limit}&q=${encodeURIComponent(query)}`;
   const config: AxiosRequestConfig = { headers: { Authorization: `Bearer ${jwt.value}` } };
   try {
     const { data } = await axios.get<SearchResponse>(url, config);
@@ -215,7 +215,7 @@ async function fetchResponse(query: string) {
 }
 
 function onClickResult(result: SearchResult) {
-  fetchVideo(store.getSiteLanguage.code, result.lank);
+  fetchVideo(store.getSiteLanguage!.code, result.lank);
 }
 
 watch(searchQuery, async (value) => {

@@ -14,7 +14,7 @@
               :items="store.languages"
               class="mt-4"
               hide-details
-              prepend-inner-icon="mdi-translate"
+              prepend-icon="mdi-translate"
               :item-title="languageLabel"
               item-value="locale"
               variant="outlined"
@@ -64,7 +64,7 @@ function languageLabel(item: Language): string {
 }
 
 async function fetchLanguages() {
-  const code = ready.value ? store.getSiteLanguage.code : '-';
+  const code = ready.value ? store.getSiteLanguage!.code : '-';
   const url = `${store.mediatorUrl}/languages/${code}/all?clientType=www`;
   const { languages } = (await axios.get<{ languages: Language[] }>(url)).data;
 
@@ -79,10 +79,10 @@ async function fetchLanguages() {
 }
 
 async function fetchTranslations() {
-  const url = `${store.mediatorUrl}/translations/${store.getSiteLanguage.code}`;
+  const url = `${store.mediatorUrl}/translations/${store.getSiteLanguage!.code}`;
   const response = await axios.get<{ translations: { [key: string]: Translations } }>(url);
-  const translations = response.data.translations[store.getSiteLanguage.code];
-  store.setTranslations(translations);
+  const translations = response.data.translations[store.getSiteLanguage!.code];
+  if (translations) store.setTranslations(translations);
 }
 
 async function openVideoFromUrl(lank: string) {
