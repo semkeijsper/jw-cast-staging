@@ -1,9 +1,9 @@
 <template>
   <v-container>
     <v-row justify="center">
-      <v-col class="mt-3" sm="12" xl="8" cols="12">
+      <v-col class="mt-3" cols="12">
         <!-- Page title — zero-width space keeps layout stable while loading -->
-        <span class="text-h3 font-weight-bold">
+        <span class="text-display-medium font-weight-bold">
           {{ store.translations.hdgVideos || '\u200D' }}
         </span>
 
