@@ -15,7 +15,7 @@
       <v-card rounded class="video-card mb-4" @click="onClickVideo(video)">
         <v-img :src="video.images.lss.lg" :aspect-ratio="2 / 1" cover>
           <div class="image-overlay d-flex align-end">
-            <v-card-title class="text-white" style="word-break: normal; user-select: none;">
+            <v-card-title class="text-white" style="word-break: normal; user-select: none; white-space: normal;">
               {{ video.title }}
             </v-card-title>
           </div>
