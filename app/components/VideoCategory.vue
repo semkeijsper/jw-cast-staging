@@ -25,9 +25,13 @@ const store = useAppStore();
 const category = ref<Category | null>(null);
 
 const media = computed<Video[]>(() => {
-  if (!category.value?.media) return [];
-  if (!props.filter) return category.value.media;
-  return category.value.media.filter((m) => props.filter!.test(m.languageAgnosticNaturalKey));
+  if (!category.value?.media) {
+    return [];
+  }
+  if (!props.filter) {
+    return category.value.media;
+  }
+  return category.value.media.filter(m => props.filter!.test(m.languageAgnosticNaturalKey));
 });
 
 const categoryUrl = computed(() => {
@@ -38,7 +42,8 @@ const categoryUrl = computed(() => {
 async function loadCategory() {
   try {
     category.value = (await $fetch<{ category: Category }>(categoryUrl.value)).category;
-  } catch {
+  }
+  catch {
     category.value = null;
   }
 }
@@ -46,7 +51,9 @@ async function loadCategory() {
 watch(
   () => store.getSiteLanguage,
   (newLang, oldLang) => {
-    if (newLang?.locale !== oldLang?.locale) loadCategory();
+    if (newLang?.locale !== oldLang?.locale) {
+      loadCategory();
+    }
   },
 );
 

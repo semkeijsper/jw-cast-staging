@@ -15,7 +15,7 @@ interface CastWindow {
   cast?: {
     framework: {
       CastContext: {
-        getInstance(): CastContextInstance;
+        getInstance: () => CastContextInstance;
       };
       SessionState: {
         SESSION_STARTED: string;
@@ -39,13 +39,13 @@ interface CastWindow {
 }
 
 interface CastContextInstance {
-  setOptions(opts: object): void;
-  requestSession(): Promise<void>;
-  getCurrentSession(): CastSession | null;
+  setOptions: (opts: object) => void;
+  requestSession: () => Promise<void>;
+  getCurrentSession: () => CastSession | null;
 }
 
 interface CastSession {
-  loadMedia(request: LoadRequest): Promise<void>;
+  loadMedia: (request: LoadRequest) => Promise<void>;
 }
 
 interface MediaInfo {
@@ -73,25 +73,32 @@ const isAvailable = ref(false);
 
 export function useCast() {
   function initCast() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     const w = window as unknown as CastWindow;
 
     const configureCast = () => {
-      if (isAvailable.value) return;
+      if (isAvailable.value) {
+        return;
+      }
       try {
         w.cast!.framework.CastContext.getInstance().setOptions({
           receiverApplicationId: 'CC1AD845',
           autoJoinPolicy: w.chrome!.cast.AutoJoinPolicy.ORIGIN_SCOPED,
         });
         isAvailable.value = true;
-      } catch {
+      }
+      catch {
         // Cast API present but configuration failed
       }
     };
 
     // Register callback for when the SDK loads (replaces the early inline stub)
     w.__onGCastApiAvailable = (available: boolean) => {
-      if (!available) return;
+      if (!available) {
+        return;
+      }
       configureCast();
     };
 
@@ -111,7 +118,9 @@ export function useCast() {
     title: string,
     subtitleUrl?: string | null,
   ): Promise<boolean> {
-    if (!isAvailable.value) return false;
+    if (!isAvailable.value) {
+      return false;
+    }
     try {
       const w = window as unknown as CastWindow;
       const context = w.cast!.framework.CastContext.getInstance();
@@ -132,12 +141,15 @@ export function useCast() {
       }
 
       const request = new w.chrome!.cast.media.LoadRequest(mediaInfo);
-      if (subtitleUrl) request.activeTrackIds = [1];
+      if (subtitleUrl) {
+        request.activeTrackIds = [1];
+      }
 
       const session = context.getCurrentSession();
       await session!.loadMedia(request);
       return true;
-    } catch {
+    }
+    catch {
       return false;
     }
   }
@@ -152,7 +164,8 @@ export function useCast() {
     let url = `https://chromecast.smplayer.info/index.php?sfgc=I2ZmZmZmZg==&ss=MS4x&url=${encodedVideo}`;
     try {
       url += `&title=${btoa(title.replaceAll('—', '-'))}`;
-    } catch {
+    }
+    catch {
       // non-Latin title — skip encoding
     }
     if (subtitleUrl) {

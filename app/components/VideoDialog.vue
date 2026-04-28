@@ -1,23 +1,25 @@
 <template>
   <v-dialog
     v-model="dialog"
+    :fullscreen="smAndDown"
     max-width="900px"
     transition="dialog-bottom-transition"
-    :fullscreen="smAndDown"
   >
     <v-card v-if="store.selectedVideo">
       <v-toolbar density="compact">
         <v-toolbar-title style="word-break: normal; user-select: none;">
           {{ `${store.selectedVideo.title} (${store.selectedVideo.durationFormattedHHMM})` }}
         </v-toolbar-title>
+
         <template #append>
-          <v-tooltip :text="store.translations.lnkHome" location="bottom">
+          <v-tooltip location="bottom" :text="store.translations.lnkHome">
             <template #activator="{ props }">
-              <v-btn icon :href="jwOrgUrl" target="_blank" v-bind="props">
+              <v-btn :href="jwOrgUrl" icon target="_blank" v-bind="props">
                 <v-icon>mdi-open-in-new</v-icon>
               </v-btn>
             </template>
           </v-tooltip>
+
           <v-btn icon @click="dialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -29,7 +31,7 @@
         <v-container fill-height fluid>
           <v-row justify="center">
             <v-col class="d-flex justify-center">
-              <v-progress-circular indeterminate color="primary" size="48" />
+              <v-progress-circular color="primary" indeterminate size="48" />
             </v-col>
           </v-row>
         </v-container>
@@ -52,40 +54,43 @@
             <v-col cols="12" sm="6">
               <v-autocomplete
                 v-model="videoLanguage"
-                :items="availableLanguages"
                 class="mt-4"
+                density="compact"
                 hide-details
-                prepend-inner-icon="mdi-volume-high"
                 :item-title="languageLabel"
                 item-value="locale"
+                :items="availableLanguages"
+                prepend-inner-icon="mdi-volume-high"
                 variant="outlined"
-                density="compact"
               />
             </v-col>
+
             <v-col cols="12" sm="6">
               <v-autocomplete
                 v-model="subtitleLanguage"
-                :items="availableLanguages"
                 class="mt-4"
+                density="compact"
                 hide-details
-                prepend-inner-icon="mdi-subtitles"
                 :item-title="languageLabel"
                 item-value="locale"
+                :items="availableLanguages"
+                prepend-inner-icon="mdi-subtitles"
                 variant="outlined"
-                density="compact"
               />
             </v-col>
           </v-row>
         </v-container>
 
         <v-card-actions v-if="xs">
-          <ButtonCast :video-media="videoMedia" :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
+          <ButtonCast :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" :video-media="videoMedia" />
         </v-card-actions>
+
         <v-card-actions>
           <template v-if="!xs">
-            <ButtonCast :video-media="videoMedia" :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
+            <ButtonCast :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" :video-media="videoMedia" />
             <v-spacer />
           </template>
+
           <ButtonVideo :video-media="videoMedia" />
           <ButtonSubtitle :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
         </v-card-actions>
@@ -96,8 +101,8 @@
 
 <script setup lang="ts">
 import type { Track } from 'plyr';
-import { useDisplay } from 'vuetify';
 import type { Language, MediaFile, Video } from '~/types';
+import { useDisplay } from 'vuetify';
 
 const store = useAppStore();
 const route = useRoute();
@@ -113,13 +118,15 @@ const subtitleMedia = ref<Video | null>(null);
 
 const dialog = computed({
   get: () => store.videoDialog,
-  set: (v) => store.setVideoDialog(v),
+  set: v => store.setVideoDialog(v),
 });
 
 const videoLanguage = computed({
   get: () => store.getVideoLanguage!.locale,
   set: (v: string) => {
-    if (!v) return;
+    if (!v) {
+      return;
+    }
     store.setVideoLanguage(v);
   },
 });
@@ -127,7 +134,9 @@ const videoLanguage = computed({
 const subtitleLanguage = computed({
   get: () => store.getSubtitleLanguage!.locale,
   set: (v: string) => {
-    if (!v) return;
+    if (!v) {
+      return;
+    }
     store.setSubtitleLanguage(v);
   },
 });
@@ -138,24 +147,26 @@ const videoPoster = computed(
 
 const jwOrgUrl = computed(() => {
   const { locale } = store.getSiteLanguage!;
-  const { primaryCategory, languageAgnosticNaturalKey } =
-    store.selectedVideo ?? videoMedia.value ?? {};
+  const { primaryCategory, languageAgnosticNaturalKey }
+    = store.selectedVideo ?? videoMedia.value ?? {};
   return `https://www.jw.org/finder?locale=${locale}&category=${primaryCategory}&lank=${languageAgnosticNaturalKey}`;
 });
 
 const captionUrl = computed(() => {
-  const found = videoMedia.value?.files.find((f) => f?.subtitles?.url);
+  const found = videoMedia.value?.files.find(f => f?.subtitles?.url);
   return found?.subtitles?.url ?? null;
 });
 
 const subtitleUrl = computed(() => {
-  const found = subtitleMedia.value?.files.find((f) => f?.subtitles?.url);
+  const found = subtitleMedia.value?.files.find(f => f?.subtitles?.url);
   return found?.subtitles?.url ?? null;
 });
 
 const availableLanguages = computed(() => {
-  if (!store.selectedVideo) return [];
-  return store.languages.filter((l) =>
+  if (!store.selectedVideo) {
+    return [];
+  }
+  return store.languages.filter(l =>
     store.selectedVideo!.availableLanguages.includes(l.code),
   );
 });
@@ -174,18 +185,24 @@ async function loadMediaItems() {
 
   if (!videoMedia.value) {
     requests.push(
-      $fetch<{ media: Video[] }>(mediaUrl(store.getVideoLanguage!)).then((result) => {
+      $fetch<{ media: Video[] }>(mediaUrl(store.getVideoLanguage!)).then(result => {
         const [media] = result.media;
-        if (media) videoMedia.value = media;
-        if (!store.selectedVideo && media) store.setSelectedVideo(media);
+        if (media) {
+          videoMedia.value = media;
+        }
+        if (!store.selectedVideo && media) {
+          store.setSelectedVideo(media);
+        }
       }),
     );
   }
   if (!subtitleMedia.value) {
     requests.push(
-      $fetch<{ media: Video[] }>(mediaUrl(store.getSubtitleLanguage!)).then((result) => {
+      $fetch<{ media: Video[] }>(mediaUrl(store.getSubtitleLanguage!)).then(result => {
         const [media] = result.media;
-        if (media) subtitleMedia.value = media;
+        if (media) {
+          subtitleMedia.value = media;
+        }
       }),
     );
   }
@@ -195,10 +212,14 @@ async function loadMediaItems() {
 }
 
 async function loadPlayer() {
-  if (!playerEl.value || !videoMedia.value) return;
+  if (!playerEl.value || !videoMedia.value) {
+    return;
+  }
 
   const { default: Plyr } = await import('plyr');
-  if (player) player.destroy();
+  if (player) {
+    player.destroy();
+  }
 
   const tracks: Track[] = [];
   if (captionUrl.value) {
@@ -231,14 +252,14 @@ async function loadPlayer() {
       videoMedia.value.files.map((f: MediaFile) => ({
         src: f.progressiveDownloadURL,
         type: f.mimetype,
-        size: parseInt(f.label.slice(0, -1), 10),
+        size: Number.parseInt(f.label.slice(0, -1), 10),
       })) ?? [],
     tracks,
   };
 }
 
 // Re-init player once media is loaded
-watch(loading, async (isLoading) => {
+watch(loading, async isLoading => {
   if (!isLoading) {
     await nextTick();
     loadPlayer();
@@ -248,15 +269,20 @@ watch(loading, async (isLoading) => {
 // Stop playback when dialog closes; update URL
 watch(
   () => store.videoDialog,
-  (open) => {
+  open => {
     if (!open) {
       player?.stop();
       const lang = route.params.language as string;
-      if (route.params.videoId) router.push(`/${lang}`);
-    } else if (open && store.selectedVideo) {
+      if (route.params.videoId) {
+        router.push(`/${lang}`);
+      }
+    }
+    else if (open && store.selectedVideo) {
       const lang = route.params.language as string;
       const lank = store.selectedVideo.languageAgnosticNaturalKey;
-      if (route.params.videoId !== lank) router.push(`/${lang}/${lank}`);
+      if (route.params.videoId !== lank) {
+        router.push(`/${lang}/${lank}`);
+      }
     }
   },
 );
@@ -264,8 +290,10 @@ watch(
 // New video selected — reset and reload
 watch(
   () => store.selectedVideo,
-  (video) => {
-    if (!video) return;
+  video => {
+    if (!video) {
+      return;
+    }
     videoMedia.value = null;
     subtitleMedia.value = null;
     // Pre-fill from selectedVideo if language matches

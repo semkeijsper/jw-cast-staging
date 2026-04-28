@@ -2,23 +2,23 @@
   <v-menu location="top" transition="slide-y-reverse-transition">
     <template #activator="{ props }">
       <v-btn
-        color="primary"
         class="mr-2"
-        prepend-icon="mdi-download"
+        color="primary"
         :loading="!videoMedia"
+        prepend-icon="mdi-download"
         v-bind="props"
       >
         {{ store.translations.btnSearchFilterVideo }}
       </v-btn>
     </template>
 
-    <v-list density="compact" v-if="videoMedia">
+    <v-list v-if="videoMedia" density="compact">
       <v-list-item
         v-for="file in filteredFiles"
         :key="file.checksum"
         :href="file.progressiveDownloadURL"
-        :title="`${file.label} (${Math.floor(file.filesize / 1048576)} MB)`"
         prepend-icon="mdi-download"
+        :title="`${file.label} (${Math.floor(file.filesize / 1048576)} MB)`"
       />
     </v-list>
   </v-menu>
@@ -34,6 +34,6 @@ const props = defineProps<{
 const store = useAppStore();
 
 const filteredFiles = computed(
-  () => props.videoMedia?.files.filter((f) => f.label !== '144p') ?? [],
+  () => props.videoMedia?.files.filter(f => f.label !== '144p') ?? [],
 );
 </script>

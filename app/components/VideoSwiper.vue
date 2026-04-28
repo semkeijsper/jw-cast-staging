@@ -1,19 +1,19 @@
 <template>
   <Swiper
-    :modules="modules"
-    :slides-per-view="1"
-    :space-between="24"
-    :free-mode="true"
-    :navigation="mdAndUp"
-    :scrollbar="{ hide: false }"
     :breakpoints="{
       600: { slidesPerView: 2, slidesPerGroup: 2 },
       1264: { slidesPerView: 3, slidesPerGroup: 3, scrollbar: { hide: true } },
     }"
+    :free-mode="true"
+    :modules="modules"
+    :navigation="mdAndUp"
+    :scrollbar="{ hide: false }"
+    :slides-per-view="1"
+    :space-between="24"
   >
     <SwiperSlide v-for="video in videos" :key="video.guid">
-      <v-card rounded class="video-card mb-4" @click="onClickVideo(video)">
-        <v-img :src="video.images.lss.lg" :aspect-ratio="2 / 1" cover>
+      <v-card class="video-card mb-4" rounded @click="onClickVideo(video)">
+        <v-img :aspect-ratio="2 / 1" cover :src="video.images.lss.lg">
           <div class="image-overlay d-flex align-end">
             <v-card-title class="text-white" style="word-break: normal; user-select: none; white-space: normal;">
               {{ video.title }}
@@ -26,10 +26,10 @@
 </template>
 
 <script setup lang="ts">
-import { Swiper, SwiperSlide } from 'swiper/vue';
-import { Navigation, Scrollbar, FreeMode } from 'swiper/modules';
-import { useDisplay } from 'vuetify';
 import type { Video } from '~/types';
+import { FreeMode, Navigation, Scrollbar } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/vue';
+import { useDisplay } from 'vuetify';
 
 defineProps<{ videos: Video[] }>();
 

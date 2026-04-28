@@ -1,27 +1,29 @@
 <template>
   <v-app>
-    <v-app-bar elevation="2" color="primary">
+    <v-app-bar color="primary" elevation="2">
       <v-app-bar-title>JW Cast</v-app-bar-title>
 
       <template #append>
         <template v-if="store.translations.lnkSearch">
           <v-btn
             v-if="!xs"
-            variant="text"
             prepend-icon="mdi-magnify"
+            variant="text"
             @click="store.setSearchDialog(true)"
           >
             {{ store.translations.lnkSearch }}
           </v-btn>
+
           <v-btn v-else icon @click="store.setSearchDialog(true)">
             <v-icon>mdi-magnify</v-icon>
           </v-btn>
         </template>
+
         <v-btn
-          variant="text"
-          prepend-icon="mdi-book-open-blank-variant"
           href="https://github.com/semkeijsper/jw-cast#handleiding"
+          prepend-icon="mdi-book-open-blank-variant"
           target="_blank"
+          variant="text"
         >
           <span v-if="!xs">{{ guideButtonText }}</span>
         </v-btn>
@@ -61,12 +63,15 @@ onMounted(() => {
 
 const guideButtonText = computed(() => {
   switch (store.siteLanguage) {
-    case 'nl':
+    case 'nl': {
       return 'Handleiding';
-    case 'en':
+    }
+    case 'en': {
       return 'Guide';
-    default:
+    }
+    default: {
       return store.translations.lnkHelpView ?? 'Guide';
+    }
   }
 });
 </script>

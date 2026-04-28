@@ -1,9 +1,21 @@
 <template>
   <v-row>
-    <v-col v-for="video in videos" :key="video.guid" sm="6" lg="4" xl="4" cols="12">
+    <v-col
+      v-for="video in videos"
+      :key="video.guid"
+      cols="12"
+      lg="4"
+      sm="6"
+      xl="4"
+    >
       <v-card hover ripple rounded @click="onClickVideo(video)">
-        <v-img :src="video.images.lss.lg" class="align-end" :aspect-ratio="2 / 1" cover
-          gradient="to bottom, rgba(0,0,0,.1), rgba(0,0,0,.5)">
+        <v-img
+          :aspect-ratio="2 / 1"
+          class="align-end"
+          cover
+          gradient="to bottom, rgba(0,0,0,.1), rgba(0,0,0,.5)"
+          :src="video.images.lss.lg"
+        >
           <v-card-title class="text-white" style="word-break: normal; user-select: none; white-space: normal;">
             {{ video.title }}
           </v-card-title>

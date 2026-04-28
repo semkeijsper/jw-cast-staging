@@ -25,27 +25,27 @@ export const useAppStore = defineStore('app', () => {
 
   // Computed getters
   const getSiteLanguage = computed(
-    () => languages.value.find((l) => l.locale === siteLanguage.value) ?? languages.value[0],
+    () => languages.value.find(l => l.locale === siteLanguage.value) ?? languages.value[0],
   );
   const getVideoLanguage = computed(
     () =>
-      languages.value.find((l) => l.locale === videoLanguage.value) ??
-      languages.value.find((l) => l.locale === 'en') ??
-      languages.value[0],
+      languages.value.find(l => l.locale === videoLanguage.value)
+      ?? languages.value.find(l => l.locale === 'en')
+      ?? languages.value[0],
   );
   const getSubtitleLanguage = computed(
     () =>
-      languages.value.find((l) => l.locale === subtitleLanguage.value) ??
-      languages.value.find((l) => l.locale === 'nl') ??
-      languages.value[0],
+      languages.value.find(l => l.locale === subtitleLanguage.value)
+      ?? languages.value.find(l => l.locale === 'nl')
+      ?? languages.value[0],
   );
 
   function findLanguageByCode(code: string | undefined) {
-    return languages.value.find((l) => l.code === code);
+    return languages.value.find(l => l.code === code);
   }
 
   function findLanguageByLocale(locale: string | undefined) {
-    return languages.value.find((l) => l.locale === locale?.replace('-', '_'));
+    return languages.value.find(l => l.locale === locale?.replace('-', '_'));
   }
 
   // Mutations

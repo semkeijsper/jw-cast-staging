@@ -1,13 +1,13 @@
 <template>
   <v-menu location="top" transition="slide-y-reverse-transition">
     <template #activator="{ props: menuProps }">
-      <v-tooltip :text="tooltipText" location="right">
+      <v-tooltip location="right" :text="tooltipText">
         <template #activator="{ props: tooltipProps }">
           <v-btn
-            color="primary"
             class="mr-2"
-            prepend-icon="mdi-cast"
+            color="primary"
             :loading="!videoMedia || !subtitleMedia"
+            prepend-icon="mdi-cast"
             v-bind="{ ...menuProps, ...tooltipProps }"
           >
             {{ store.translations.btnPlay }}
@@ -16,15 +16,16 @@
       </v-tooltip>
     </template>
 
-    <v-list density="compact" v-if="videoMedia">
+    <v-list v-if="videoMedia" density="compact">
       <v-list-subheader>
         {{ castAvailable ? 'Chromecast' : 'SMPlayer (Chromecast)' }}
       </v-list-subheader>
+
       <v-list-item
         v-for="file in filteredFiles"
         :key="file.checksum"
-        :title="file.label"
         :prepend-icon="castAvailable ? 'mdi-cast' : 'mdi-open-in-new'"
+        :title="file.label"
         @click="onSelectFile(file)"
       />
     </v-list>
@@ -44,7 +45,7 @@ const store = useAppStore();
 const { isAvailable: castAvailable, castMedia, getSmPlayerUrl } = useCast();
 
 const filteredFiles = computed(
-  () => props.videoMedia?.files.filter((f) => f.label !== '144p') ?? [],
+  () => props.videoMedia?.files.filter(f => f.label !== '144p') ?? [],
 );
 
 const tooltipText = computed(() =>
@@ -62,7 +63,8 @@ async function onSelectFile(file: MediaFile) {
       // Fall back to SMPlayer if casting failed (e.g. user dismissed the picker)
       window.open(getSmPlayerUrl(file.progressiveDownloadURL, title, props.subtitleUrl), '_blank');
     }
-  } else {
+  }
+  else {
     window.open(getSmPlayerUrl(file.progressiveDownloadURL, title, props.subtitleUrl), '_blank');
   }
 }

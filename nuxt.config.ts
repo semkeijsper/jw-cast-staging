@@ -66,6 +66,7 @@ export default defineNuxtConfig({
 
   eslint: {
     config: {
+      standalone: false,
       import: {
         package: 'eslint-plugin-import-lite',
       },

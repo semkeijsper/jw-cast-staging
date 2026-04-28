@@ -1,26 +1,27 @@
 <template>
   <v-dialog
     v-model="dialog"
-    max-width="1100px"
-    transition="dialog-bottom-transition"
     :fullscreen="smAndDown"
+    max-width="1100px"
     scrollable
+    transition="dialog-bottom-transition"
   >
     <v-card>
-      <v-toolbar color="primary" class="flex-grow-0">
+      <v-toolbar class="flex-grow-0" color="primary">
         <v-text-field
           v-model="query"
-          prepend-inner-icon="mdi-magnify"
-          :placeholder="placeholder"
-          hide-details
-          single-line
-          variant="outlined"
-          density="compact"
-          clearable
           autofocus
           class="mr-3"
+          clearable
+          density="compact"
+          hide-details
+          :placeholder="placeholder"
+          prepend-inner-icon="mdi-magnify"
+          single-line
           style="color: white"
+          variant="outlined"
         />
+
         <template #append>
           <v-btn icon @click="dialog = false">
             <v-icon>mdi-close</v-icon>
@@ -32,33 +33,35 @@
         <v-container>
           <!-- Result info + sort -->
           <v-row v-if="response">
-            <v-col sm="6" lg="8" cols="12">
+            <v-col cols="12" lg="8" sm="6">
               <span>{{ searchMessage }}</span>
+
               <div
                 v-if="response.messages[1]"
-                v-html="response.messages[1].message"
                 class="mt-1"
+                v-html="response.messages[1].message"
               />
             </v-col>
-            <v-col v-if="response.sorts.length" sm="6" lg="4" cols="12">
+
+            <v-col v-if="response.sorts.length > 0" cols="12" lg="4" sm="6">
               <v-select
                 v-model="sort"
-                :items="sortItems"
-                item-value="key"
-                item-title="label"
-                prepend-inner-icon="mdi-sort"
-                label="Sort"
-                variant="outlined"
-                hide-details
                 density="compact"
+                hide-details
+                item-title="label"
+                item-value="key"
+                :items="sortItems"
+                label="Sort"
+                prepend-inner-icon="mdi-sort"
+                variant="outlined"
               />
             </v-col>
           </v-row>
 
           <!-- Skeleton while loading -->
           <v-row v-else>
-            <v-col sm="6" lg="4" cols="12">
-              <v-skeleton-loader type="text" :loading="isLoading" />
+            <v-col cols="12" lg="4" sm="6">
+              <v-skeleton-loader :loading="isLoading" type="text" />
             </v-col>
           </v-row>
 
@@ -67,12 +70,12 @@
             <v-col
               v-for="result in response.results"
               :key="result.lank"
-              sm="6"
-              lg="4"
               cols="12"
+              lg="4"
+              sm="6"
             >
-              <v-card rounded class="result-card" @click="onClickResult(result)">
-                <v-img :src="result.image.url" :aspect-ratio="2 / 1" cover>
+              <v-card class="result-card" rounded @click="onClickResult(result)">
+                <v-img :aspect-ratio="2 / 1" cover :src="result.image.url">
                   <div class="image-overlay d-flex align-end">
                     <v-card-title class="text-white" style="word-break: normal; user-select: none;">
                       {{ result.title }}
@@ -85,13 +88,19 @@
 
           <!-- Skeleton grid while loading -->
           <v-row v-else>
-            <v-col v-for="i in columnCount" :key="i" sm="6" lg="4" cols="12">
-              <v-skeleton-loader type="image" max-height="189" :loading="isLoading" />
+            <v-col
+              v-for="i in columnCount"
+              :key="i"
+              cols="12"
+              lg="4"
+              sm="6"
+            >
+              <v-skeleton-loader :loading="isLoading" max-height="189" type="image" />
             </v-col>
           </v-row>
 
           <!-- Pagination -->
-          <v-row v-if="totalPages > 1" justify="center" class="mt-2">
+          <v-row v-if="totalPages > 1" class="mt-2" justify="center">
             <v-pagination v-model="currentPage" :length="totalPages" rounded />
           </v-row>
         </v-container>
@@ -101,9 +110,9 @@
 </template>
 
 <script setup lang="ts">
+import type { SearchResponse, SearchResult, Video } from '~/types';
 import { FetchError } from 'ofetch';
 import { useDisplay } from 'vuetify';
-import type { SearchResponse, SearchResult, Video } from '~/types';
 
 const store = useAppStore();
 const { xs, smAndDown, name: breakpointName } = useDisplay();
@@ -120,14 +129,16 @@ const limit = 12;
 
 const dialog = computed({
   get: () => store.searchDialog,
-  set: (v) => store.setSearchDialog(v),
+  set: v => store.setSearchDialog(v),
 });
 
 // Debounced query setter
 const query = computed({
   get: () => searchQuery.value,
   set: (value: string) => {
-    if (debounceTimer.value) clearTimeout(debounceTimer.value);
+    if (debounceTimer.value) {
+      clearTimeout(debounceTimer.value);
+    }
     debounceTimer.value = setTimeout(() => {
       offset.value = 0;
       searchQuery.value = value;
@@ -137,10 +148,12 @@ const query = computed({
 
 const placeholder = computed(() => {
   switch (store.siteLanguage) {
-    case 'nl':
+    case 'nl': {
       return 'Zoek of plak jw.org link...';
-    default:
+    }
+    default: {
       return 'Search or paste jw.org link...';
+    }
   }
 });
 
@@ -149,22 +162,25 @@ const searchMessage = computed(
 );
 
 const sortItems = computed(() =>
-  sortKeys.map((key) => ({
+  sortKeys.map(key => ({
     key,
-    label: response.value?.sorts.find((s) => s.link.includes(key))?.label ?? key,
+    label: response.value?.sorts.find(s => s.link.includes(key))?.label ?? key,
   })),
 );
 
 const columnCount = computed(() => {
   switch (breakpointName.value) {
     case 'xl':
-    case 'lg':
+    case 'lg': {
       return 3;
+    }
     case 'md':
-    case 'sm':
+    case 'sm': {
       return 2;
-    default:
+    }
+    default: {
       return 1;
+    }
   }
 });
 
@@ -185,7 +201,9 @@ async function fetchToken() {
 }
 
 async function fetchVideo(langCode: string | undefined, lank: string | undefined) {
-  if (!langCode || !lank) return;
+  if (!langCode || !lank) {
+    return;
+  }
   const { media } = await $fetch<{ media: Video[] }>(
     `${store.mediatorUrl}/media-items/${langCode}/${lank}?clientType=www`,
   );
@@ -202,14 +220,16 @@ async function fetchResponse(query: string) {
       headers: { Authorization: `Bearer ${jwt.value}` },
     });
     // Filter out category results — only show individual videos
-    data.results = data.results.filter((r) => r.subtype !== 'videoCategory');
+    data.results = data.results.filter(r => r.subtype !== 'videoCategory');
     response.value = data;
-  } catch (err) {
-    if (err instanceof FetchError && err.response?.status === 401) {
+  }
+  catch (error) {
+    if (error instanceof FetchError && error.response?.status === 401) {
       await fetchToken();
       await fetchResponse(query); // retry once after token refresh
     }
-  } finally {
+  }
+  finally {
     isLoading.value = false;
   }
 }
@@ -218,7 +238,7 @@ function onClickResult(result: SearchResult) {
   fetchVideo(store.getSiteLanguage!.code, result.lank);
 }
 
-watch(searchQuery, async (value) => {
+watch(searchQuery, async value => {
   if (!value) {
     response.value = null;
     return;
@@ -229,13 +249,13 @@ watch(searchQuery, async (value) => {
   const wtLocaleRegex = /wtlocale=(?<code>[A-Za-z]+)/;
   const localeRegex = /locale=(?<locale>[A-Za-z_]+)/;
   const lankRegex = /lank=(?<lank>[\w-]+)/;
-  const mediaItemsRegex =
-    /jw\.org\/[\w-]+\/.+#(?<locale>[\w-]+)\/mediaitems\/(?<category>[\w-]+)\/(?<lank>[\w-]+)/;
+  const mediaItemsRegex
+    = /jw\.org\/[\w-]+\/.+#(?<locale>[\w-]+)\/mediaitems\/(?<category>[\w-]+)\/(?<lank>[\w-]+)/;
 
   if (finderRegex.test(value)) {
-    const lang =
-      wtLocaleRegex.exec(value)?.groups?.code ??
-      store.findLanguageByLocale(localeRegex.exec(value)?.groups?.locale)?.code;
+    const lang
+      = wtLocaleRegex.exec(value)?.groups?.code
+        ?? store.findLanguageByLocale(localeRegex.exec(value)?.groups?.locale)?.code;
     const lank = lankRegex.exec(value)?.groups?.lank;
     await fetchVideo(lang, lank);
     searchQuery.value = '';
@@ -256,7 +276,9 @@ watch(searchQuery, async (value) => {
 
 watch(sort, () => {
   offset.value = 0;
-  if (searchQuery.value) fetchResponse(searchQuery.value);
+  if (searchQuery.value) {
+    fetchResponse(searchQuery.value);
+  }
 });
 
 watch(

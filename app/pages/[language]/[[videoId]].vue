@@ -8,17 +8,17 @@
         </span>
 
         <v-row>
-          <v-col xs="12" sm="6" lg="4" cols="12">
+          <v-col cols="12" lg="4" sm="6" xs="12">
             <v-autocomplete
               v-model="siteLanguage"
-              :items="store.languages"
               class="mt-4"
+              density="compact"
               hide-details
-              prepend-icon="mdi-translate"
               :item-title="languageLabel"
               item-value="locale"
+              :items="store.languages"
+              prepend-icon="mdi-translate"
               variant="outlined"
-              density="compact"
             />
           </v-col>
         </v-row>
@@ -28,10 +28,10 @@
     </v-row>
 
     <template v-if="ready">
-      <VideoCategory category-name="LatestVideos" grid divider />
-      <VideoCategory category-name="StudioMonthlyPrograms" :limit="12" divider />
-      <VideoCategory category-name="StudioTalks" :limit="9" divider />
-      <VideoCategory category-name="StudioNewsReports" :limit="9" class="mb-3" />
+      <VideoCategory category-name="LatestVideos" divider grid />
+      <VideoCategory category-name="StudioMonthlyPrograms" divider :limit="12" />
+      <VideoCategory category-name="StudioTalks" divider :limit="9" />
+      <VideoCategory category-name="StudioNewsReports" class="mb-3" :limit="9" />
     </template>
   </v-container>
 </template>
@@ -43,7 +43,7 @@ definePageMeta({
   // Keep the same component instance when only videoId changes (e.g. opening/closing a video
   // dialog). Without this, Nuxt generates different page keys for /:language and
   // /:language/:videoId, causing a full remount and visible grid flicker on every dialog open.
-  key: (route) => route.params.language as string,
+  key: route => route.params.language as string,
 });
 
 const store = useAppStore();
@@ -59,7 +59,9 @@ const videoId = computed(() => route.params.videoId as string | undefined);
 const siteLanguage = computed({
   get: () => store.getSiteLanguage?.locale ?? 'nl',
   set: (value: string) => {
-    if (!value) return;
+    if (!value) {
+      return;
+    }
     store.setSiteLanguage(value);
     router.push(`/${value}`);
   },
@@ -75,11 +77,15 @@ async function fetchLanguages() {
   const { languages } = await $fetch<{ languages: Language[] }>(url);
 
   // Pin Dutch and English at the top
-  const nl = languages.find((l) => l.locale === 'nl');
-  const en = languages.find((l) => l.locale === 'en');
-  const rest = languages.filter((l) => l.locale !== 'nl' && l.locale !== 'en');
-  if (nl) rest.unshift(nl);
-  if (en) rest.splice(nl ? 1 : 0, 0, en);
+  const nl = languages.find(l => l.locale === 'nl');
+  const en = languages.find(l => l.locale === 'en');
+  const rest = languages.filter(l => l.locale !== 'nl' && l.locale !== 'en');
+  if (nl) {
+    rest.unshift(nl);
+  }
+  if (en) {
+    rest.splice(nl ? 1 : 0, 0, en);
+  }
 
   store.setLanguages(rest);
 }
@@ -88,7 +94,9 @@ async function fetchTranslations() {
   const url = `${store.mediatorUrl}/translations/${store.getSiteLanguage!.code}`;
   const response = await $fetch<{ translations: { [key: string]: Translations } }>(url);
   const translations = response.translations[store.getSiteLanguage!.code];
-  if (translations) store.setTranslations(translations);
+  if (translations) {
+    store.setTranslations(translations);
+  }
 }
 
 async function openVideoFromUrl(lank: string) {
@@ -102,7 +110,8 @@ async function openVideoFromUrl(lank: string) {
       store.setSelectedVideo(video);
       store.setVideoDialog(true);
     }
-  } catch {
+  }
+  catch {
     // Invalid lank — silently ignore, don't crash the page
   }
 }
@@ -110,8 +119,8 @@ async function openVideoFromUrl(lank: string) {
 // When route language changes (navigating between language pages)
 watch(
   language,
-  async (newLang) => {
-    if (!store.languages.some((l) => l.locale === newLang)) {
+  async newLang => {
+    if (!store.languages.some(l => l.locale === newLang)) {
       router.replace('/en');
       return;
     }
@@ -122,14 +131,14 @@ watch(
 );
 
 // When videoId disappears from URL (e.g. browser back), close the dialog
-watch(videoId, (id) => {
+watch(videoId, id => {
   if (!id && store.videoDialog) {
     store.setVideoDialog(false);
     store.setSelectedVideo(null);
   }
 });
 
-onMounted(async () => {
+onMounted(async() => {
   store.setSiteLanguage(language.value);
   await Promise.allSettled([fetchLanguages(), fetchTranslations()]);
 
