@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
+  compatibilityDate: '2025-12-21',
 
   // Client-side only — no SSR
   ssr: false,
@@ -33,11 +33,7 @@ export default defineNuxtConfig({
           rel: 'stylesheet',
           href: 'https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900',
         },
-        {
-          rel: 'stylesheet',
-          href: 'https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css',
-        },
-        { rel: 'apple-touch-icon', sizes: '180x180', href: '/assets/apple-touch-icon.png' },
+{ rel: 'apple-touch-icon', sizes: '180x180', href: '/assets/apple-touch-icon.png' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/assets/favicon-32x32.png' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/assets/favicon-16x16.png' },
         { rel: 'manifest', href: '/assets/site.webmanifest' },
@@ -68,7 +64,18 @@ export default defineNuxtConfig({
 
   css: ['plyr/dist/plyr.css', 'swiper/css', 'swiper/css/navigation', 'swiper/css/scrollbar'],
 
+  eslint: {
+    config: {
+      import: {
+        package: 'eslint-plugin-import-lite',
+      },
+    },
+  },
+
   vuetify: {
+    moduleOptions: {
+      styles: { configFile: 'assets/styles/settings.scss' },
+    },
     vuetifyOptions: {
       theme: {
         themes: {
