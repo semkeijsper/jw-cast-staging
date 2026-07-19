@@ -341,7 +341,10 @@ watch(searchQuery, async value => {
         ?? store.findLanguageByLocale(localeRegex.exec(value)?.groups?.locale)?.code;
     const lank = lankRegex.exec(value)?.groups?.lank;
     await fetchVideo(lang, lank);
-    searchQuery.value = '';
+    // Keep the query (and the error alert) when the link failed to resolve
+    if (!hasError.value) {
+      searchQuery.value = '';
+    }
     return;
   }
 
@@ -350,7 +353,9 @@ watch(searchQuery, async value => {
     const lang = store.findLanguageByLocale(match?.groups?.locale)?.code;
     const lank = match?.groups?.lank;
     await fetchVideo(lang, lank);
-    searchQuery.value = '';
+    if (!hasError.value) {
+      searchQuery.value = '';
+    }
     return;
   }
 
