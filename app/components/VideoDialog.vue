@@ -101,8 +101,6 @@
 import { useDisplay } from 'vuetify';
 
 const store = useAppStore();
-const route = useRoute();
-const router = useRouter();
 const { xs, smAndDown } = useDisplay();
 const { isCastConnected, isMediaLoaded, currentTime: castTime, seekTo: castSeekTo } = useCast();
 
@@ -178,24 +176,15 @@ watch(loading, async isLoading => {
   }
 });
 
-// Stop playback when dialog closes; update URL
+// Stop playback when the dialog closes (URL sync lives in useVideoRoute)
 watch(
   () => store.videoDialog,
   open => {
     if (!open) {
       stopPlayer();
       store.setTranscriptDialog(false);
-      const lang = route.params.language as string;
-      if (route.params.videoId) {
-        router.push(`/${lang}`);
-      }
     }
     else if (open && store.selectedVideo) {
-      const lang = route.params.language as string;
-      const lank = store.selectedVideo.languageAgnosticNaturalKey;
-      if (route.params.videoId !== lank) {
-        router.push(`/${lang}/${lank}`);
-      }
       // Reopening the same video remounts the dialog's <video> element without
       // any media watcher firing, so the player must be re-initialized here
       nextTick(() => loadPlayer());

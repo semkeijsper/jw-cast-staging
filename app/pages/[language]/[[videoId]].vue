@@ -180,11 +180,6 @@ async function initPage(locale: string) {
 // Runs on mount and whenever the route language changes
 watch(language, locale => initPage(locale), { immediate: true });
 
-// When videoId disappears from URL (e.g. browser back), close the dialog
-watch(videoId, id => {
-  if (!id && store.videoDialog) {
-    store.setVideoDialog(false);
-    store.setSelectedVideo(null);
-  }
-});
+// Dialog open/close ↔ /:language/:videoId URL sync
+useVideoRoute();
 </script>
