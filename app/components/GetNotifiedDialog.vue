@@ -34,9 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import type { WhatsAppChannel } from '~/config/whatsappChannels';
 import { useDisplay } from 'vuetify';
-import { whatsappChannels } from '~/config/whatsappChannels';
 
 const store = useAppStore();
 const { xs } = useDisplay();
@@ -46,7 +44,5 @@ const dialog = computed({
   set: v => store.setGetNotifiedDialog(v),
 });
 
-const channel = computed<WhatsAppChannel | undefined>(
-  () => whatsappChannels[store.siteLanguage],
-);
+const channel = computed(() => store.whatsappChannel);
 </script>

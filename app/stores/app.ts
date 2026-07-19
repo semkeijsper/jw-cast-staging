@@ -1,11 +1,7 @@
 import type { Language, Translations, Video } from '~/types';
+import { whatsappChannels } from '~/config/whatsappChannels';
 
 export const useAppStore = defineStore('app', () => {
-  // API base URLs
-  const mediatorUrl = 'https://b.jw-cdn.org/apis/mediator/v1';
-  const searchUrl = 'https://b.jw-cdn.org/apis/search/results';
-  const tokenUrl = 'https://b.jw-cdn.org/tokens/jworg.jwt';
-
   // Seeded with Dutch + English; expanded by fetchLanguages()
   const languages = ref<Language[]>([
     { code: 'O', locale: 'nl', vernacular: 'Nederlands', name: 'Nederlands' },
@@ -45,6 +41,8 @@ export const useAppStore = defineStore('app', () => {
       ?? languages.value.find(l => l.locale === 'nl')
       ?? languages.value[0],
   );
+
+  const whatsappChannel = computed(() => whatsappChannels[siteLanguage.value]);
 
   function findLanguageByCode(code: string | undefined) {
     return languages.value.find(l => l.code === code);
@@ -86,10 +84,14 @@ export const useAppStore = defineStore('app', () => {
     selectedVideo.value = value;
   }
 
+  // Select a video and open the player dialog — the single entry point for
+  // every open path (grid, swiper, search result, pasted link, direct URL)
+  function openVideo(video: Video) {
+    selectedVideo.value = video;
+    videoDialog.value = true;
+  }
+
   return {
-    mediatorUrl,
-    searchUrl,
-    tokenUrl,
     languages,
     translations,
     siteLanguage,
@@ -103,6 +105,7 @@ export const useAppStore = defineStore('app', () => {
     getSiteLanguage,
     getVideoLanguage,
     getSubtitleLanguage,
+    whatsappChannel,
     findLanguageByCode,
     findLanguageByLocale,
     setLanguages,
@@ -115,6 +118,7 @@ export const useAppStore = defineStore('app', () => {
     setTranscriptDialog,
     setGetNotifiedDialog,
     setSelectedVideo,
+    openVideo,
   };
 }, {
   persist: {

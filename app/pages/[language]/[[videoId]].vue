@@ -9,17 +9,11 @@
 
         <v-row>
           <v-col cols="12" lg="4" sm="6" xs="12">
-            <v-autocomplete
+            <CommonLanguageSelect
               v-model="siteLanguage"
               class="mt-4"
-              density="compact"
-              hide-details
-              :item-title="languageLabel"
-              item-value="locale"
+              icon="mdi-translate"
               :items="store.languages"
-              :list-props="{ density: 'compact' }"
-              prepend-icon="mdi-translate"
-              variant="outlined"
             />
           </v-col>
         </v-row>
@@ -44,10 +38,10 @@
 
     <template v-if="ready">
       <VideoCategory category-name="LatestVideos" divider grid>
-        <template v-if="whatsappChannel" #title-actions>
+        <template v-if="store.whatsappChannel" #title-actions>
           <v-btn color="primary" variant="outlined" @click="store.setGetNotifiedDialog(true)">
             <v-icon :start="!xs">mdi-bell</v-icon>
-            <span class="d-none d-sm-inline">{{ whatsappChannel.ctaLabel }}</span>
+            <span class="d-none d-sm-inline">{{ store.whatsappChannel.ctaLabel }}</span>
           </v-btn>
         </template>
       </VideoCategory>
@@ -60,9 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Language, Translations, Video } from '~/types';
 import { useDisplay } from 'vuetify';
-import { whatsappChannels } from '~/config/whatsappChannels';
 
 definePageMeta({
   // Keep the same component instance when only videoId changes (e.g. opening/closing a video
@@ -78,8 +70,6 @@ const { xs } = useDisplay();
 
 const ready = ref(false);
 const loadFailed = ref(false);
-
-const whatsappChannel = computed(() => whatsappChannels[store.siteLanguage]);
 
 const loadErrorMessage = computed(() => {
   switch (store.siteLanguage) {
@@ -118,15 +108,9 @@ const siteLanguage = computed({
   },
 });
 
-function languageLabel(item: Language): string {
-  return item.name === item.vernacular ? item.name : `${item.name} (${item.vernacular})`;
-}
-
-async function fetchLanguages() {
+async function loadLanguages() {
   const known = store.languages.some(l => l.locale === store.siteLanguage);
-  const code = known ? store.getSiteLanguage!.code : '-';
-  const url = `${store.mediatorUrl}/languages/${code}/all?clientType=www`;
-  const { languages } = await $fetch<{ languages: Language[] }>(url);
+  const languages = await fetchLanguages(known ? store.getSiteLanguage!.code : '-');
 
   // Pin Dutch and English at the top
   const nl = languages.find(l => l.locale === 'nl');
@@ -142,10 +126,8 @@ async function fetchLanguages() {
   store.setLanguages(rest);
 }
 
-async function fetchTranslations() {
-  const url = `${store.mediatorUrl}/translations/${store.getSiteLanguage!.code}`;
-  const response = await $fetch<{ translations: { [key: string]: Translations } }>(url);
-  const translations = response.translations[store.getSiteLanguage!.code];
+async function loadTranslations() {
+  const translations = await fetchTranslations(store.getSiteLanguage!.code);
   if (translations) {
     store.setTranslations(translations);
   }
@@ -153,14 +135,9 @@ async function fetchTranslations() {
 
 async function openVideoFromUrl(lank: string) {
   try {
-    const langCode = store.getSiteLanguage?.code ?? 'E';
-    const { media } = await $fetch<{ media: Video[] }>(
-      `${store.mediatorUrl}/media-items/${langCode}/${lank}?clientType=www`,
-    );
-    const [video] = media;
+    const video = await fetchMediaItem(store.getSiteLanguage?.code ?? 'E', lank);
     if (video) {
-      store.setSelectedVideo(video);
-      store.setVideoDialog(true);
+      store.openVideo(video);
     }
   }
   catch {
@@ -174,7 +151,7 @@ async function initPage(locale: string) {
   // before they can be validated
   if (!store.languages.some(l => l.locale === locale)) {
     try {
-      await fetchLanguages();
+      await loadLanguages();
     }
     catch {
       loadFailed.value = true;
@@ -187,7 +164,7 @@ async function initPage(locale: string) {
   }
   store.setSiteLanguage(locale);
   // Refetch so language names and translations are localized to the new language
-  const results = await Promise.allSettled([fetchLanguages(), fetchTranslations()]);
+  const results = await Promise.allSettled([loadLanguages(), loadTranslations()]);
   if (results.some(r => r.status === 'rejected')) {
     loadFailed.value = true;
     return;

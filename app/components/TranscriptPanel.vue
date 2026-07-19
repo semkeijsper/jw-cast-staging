@@ -69,7 +69,7 @@
           :class="{ 'cue-active': !isFiltering && cue === cues[activeIndex] }"
           @click="onClickCue(cue)"
         >
-          <span class="cue-time">{{ formatCueTime(cue.start) }}</span>
+          <span class="cue-time">{{ formatTime(cue.start) }}</span>
 
           <span class="cue-text">
             <template v-for="(segment, i) in cueSegments(cue.text)" :key="i">

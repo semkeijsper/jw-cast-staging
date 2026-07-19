@@ -11,7 +11,7 @@
       <VideoCard
         :src="video.images.lss.lg"
         :title="video.title"
-        @click="onClickVideo(video)"
+        @click="store.openVideo(video)"
       />
     </v-col>
   </v-row>
@@ -23,9 +23,4 @@ import type { Video } from '~/types';
 defineProps<{ videos: Video[] }>();
 
 const store = useAppStore();
-
-function onClickVideo(video: Video) {
-  store.setSelectedVideo(video);
-  store.setVideoDialog(true);
-}
 </script>

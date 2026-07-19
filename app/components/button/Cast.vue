@@ -22,7 +22,7 @@
       <v-list-subheader>Chromecast</v-list-subheader>
 
       <v-list-item
-        v-for="file in filteredFiles"
+        v-for="file in downloadableFiles(videoMedia)"
         :key="file.checksum"
         prepend-icon="mdi-cast"
         :title="file.label"
@@ -43,10 +43,6 @@ const props = defineProps<{
 
 const store = useAppStore();
 const { isAvailable: castAvailable, castMedia } = useCast();
-
-const filteredFiles = computed(
-  () => props.videoMedia?.files.filter(f => f.label !== '144p') ?? [],
-);
 
 const tooltipText = computed(() =>
   props.subtitleUrl

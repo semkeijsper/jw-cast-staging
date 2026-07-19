@@ -16,7 +16,7 @@
         class="mb-4"
         :src="video.images.lss.lg"
         :title="video.title"
-        @click="onClickVideo(video)"
+        @click="store.openVideo(video)"
       />
     </SwiperSlide>
   </Swiper>
@@ -34,9 +34,4 @@ const store = useAppStore();
 const { mdAndUp } = useDisplay();
 
 const modules = [Navigation, Scrollbar, FreeMode];
-
-function onClickVideo(video: Video) {
-  store.setSelectedVideo(video);
-  store.setVideoDialog(true);
-}
 </script>

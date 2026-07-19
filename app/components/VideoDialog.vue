@@ -23,7 +23,7 @@
               <v-list-subheader>{{ store.translations.btnDownload ?? 'Download' }}</v-list-subheader>
 
               <v-list-item
-                v-for="file in downloadableFiles"
+                v-for="file in downloadableFiles(videoMedia)"
                 :key="file.checksum"
                 :href="file.progressiveDownloadURL"
                 prepend-icon="mdi-download"
@@ -103,32 +103,20 @@
         <v-container class="pa-3">
           <v-row :no-gutters="xs">
             <v-col cols="12" sm="6">
-              <v-autocomplete
+              <CommonLanguageSelect
                 v-model="videoLanguage"
                 class="mt-4"
-                density="compact"
-                hide-details
-                :item-title="languageLabel"
-                item-value="locale"
+                icon="mdi-volume-high"
                 :items="availableLanguages"
-                :list-props="{ density: 'compact' }"
-                prepend-icon="mdi-volume-high"
-                variant="outlined"
               />
             </v-col>
 
             <v-col cols="12" sm="6">
-              <v-autocomplete
+              <CommonLanguageSelect
                 v-model="subtitleLanguage"
                 class="mt-4"
-                density="compact"
-                hide-details
-                :item-title="languageLabel"
-                item-value="locale"
+                icon="mdi-subtitles"
                 :items="availableLanguages"
-                :list-props="{ density: 'compact' }"
-                prepend-icon="mdi-subtitles"
-                variant="outlined"
               />
             </v-col>
           </v-row>
@@ -146,7 +134,7 @@
 
 <script setup lang="ts">
 import type { Track } from 'plyr';
-import type { Language, MediaFile, Video } from '~/types';
+import type { MediaFile, Video } from '~/types';
 import { useDisplay } from 'vuetify';
 
 const store = useAppStore();
@@ -226,10 +214,6 @@ const subtitleUrl = computed(() => {
   return found?.subtitles?.url ?? null;
 });
 
-const downloadableFiles = computed(
-  () => videoMedia.value?.files.filter(f => f.label !== '144p') ?? [],
-);
-
 const availableLanguages = computed(() => {
   if (!store.selectedVideo) {
     return [];
@@ -239,25 +223,17 @@ const availableLanguages = computed(() => {
   );
 });
 
-function languageLabel(item: Language): string {
-  return item.name === item.vernacular ? item.name : `${item.name} (${item.vernacular})`;
-}
-
-function mediaUrl(language: Language): string {
-  return `${store.mediatorUrl}/media-items/${language.code}/${store.selectedVideo?.languageAgnosticNaturalKey}?clientType=www`;
-}
-
 async function loadMediaItems() {
   if (!store.selectedVideo) {
     return;
   }
+  const { languageAgnosticNaturalKey: lank } = store.selectedVideo;
   loading.value = true;
   const requests: Promise<void>[] = [];
 
   if (!videoMedia.value) {
     requests.push(
-      $fetch<{ media: Video[] }>(mediaUrl(store.getVideoLanguage!)).then(result => {
-        const [media] = result.media;
+      fetchMediaItem(store.getVideoLanguage!.code, lank).then(media => {
         if (media) {
           videoMedia.value = media;
         }
@@ -266,8 +242,7 @@ async function loadMediaItems() {
   }
   if (!subtitleMedia.value) {
     requests.push(
-      $fetch<{ media: Video[] }>(mediaUrl(store.getSubtitleLanguage!)).then(result => {
-        const [media] = result.media;
+      fetchMediaItem(store.getSubtitleLanguage!.code, lank).then(media => {
         if (media) {
           subtitleMedia.value = media;
         }

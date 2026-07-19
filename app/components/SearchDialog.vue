@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import type { SearchResponse, SearchResult, Video } from '~/types';
+import type { SearchResponse, SearchResult } from '~/types';
 import { FetchError } from 'ofetch';
 import { useDisplay } from 'vuetify';
 
@@ -248,8 +248,8 @@ const currentPage = computed({
   },
 });
 
-async function fetchToken() {
-  jwt.value = await $fetch<string>(store.tokenUrl, { responseType: 'text' });
+async function loadToken() {
+  jwt.value = await fetchToken();
 }
 
 async function fetchVideo(langCode: string | undefined, lank: string | undefined) {
@@ -258,16 +258,12 @@ async function fetchVideo(langCode: string | undefined, lank: string | undefined
     return;
   }
   try {
-    const { media } = await $fetch<{ media: Video[] }>(
-      `${store.mediatorUrl}/media-items/${langCode}/${lank}?clientType=www`,
-    );
-    const [video] = media;
+    const video = await fetchMediaItem(langCode, lank);
     if (!video) {
       hasError.value = true;
       return;
     }
-    store.setSelectedVideo(video);
-    store.setVideoDialog(true);
+    store.openVideo(video);
   }
   catch {
     hasError.value = true;
@@ -282,11 +278,13 @@ async function fetchResponse(query: string, retried = false) {
   const id = retried ? requestId : ++requestId;
   isLoading.value = true;
   hasError.value = false;
-  const url = `${store.searchUrl}/${store.getSiteLanguage!.code}/videos?sort=${sort.value}&offset=${offset.value}&limit=${LIMIT}&q=${encodeURIComponent(query)}`;
   try {
-    const data = await $fetch<SearchResponse>(url, {
-      headers: { Authorization: `Bearer ${jwt.value}` },
-    });
+    const data = await fetchSearch(
+      store.getSiteLanguage!.code,
+      query,
+      { sort: sort.value, offset: offset.value, limit: LIMIT },
+      jwt.value,
+    );
     if (id !== requestId) {
       return;
     }
@@ -300,7 +298,7 @@ async function fetchResponse(query: string, retried = false) {
     }
     if (!retried && error instanceof FetchError && error.response?.status === 401) {
       try {
-        await fetchToken();
+        await loadToken();
         await fetchResponse(query, true);
       }
       catch {
@@ -375,7 +373,7 @@ watch(
   },
 );
 
-onMounted(fetchToken);
+onMounted(loadToken);
 </script>
 
 <style scoped>

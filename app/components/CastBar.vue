@@ -193,20 +193,6 @@ function onSeekEnd(value: number) {
     pendingSeek.value = null;
   }, 5000);
 }
-
-function formatTime(totalSeconds: number) {
-  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) {
-    return '0:00';
-  }
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  const paddedSeconds = String(seconds).padStart(2, '0');
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${paddedSeconds}`;
-  }
-  return `${minutes}:${paddedSeconds}`;
-}
 </script>
 
 <style scoped>

@@ -38,14 +38,9 @@ const media = computed<Video[]>(() => {
   return category.value.media.filter(m => props.filter!.test(m.languageAgnosticNaturalKey));
 });
 
-const categoryUrl = computed(() => {
-  const base = `${store.mediatorUrl}/categories/${store.getSiteLanguage!.code}/${props.categoryName}?detailed=1&clientType=www`;
-  return props.limit ? `${base}&limit=${props.limit}` : base;
-});
-
 async function loadCategory() {
   try {
-    category.value = (await $fetch<{ category: Category }>(categoryUrl.value)).category;
+    category.value = await fetchCategory(store.getSiteLanguage!.code, props.categoryName, props.limit);
   }
   catch {
     category.value = null;
