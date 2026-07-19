@@ -144,9 +144,8 @@ const { isCastConnected, isMediaLoaded, currentTime: castTime, seekTo: castSeekT
 
 const playerEl = ref<HTMLVideoElement | null>(null);
 
-const loading = ref(true);
-const videoMedia = ref<Video | null>(null);
-const subtitleMedia = ref<Video | null>(null);
+const { loading, videoMedia, subtitleMedia, captionUrl, subtitleUrl }
+  = useMediaItems(() => captureResume());
 
 const isCasting = computed(() => isCastConnected.value && isMediaLoaded.value);
 const transcriptTime = computed(() => (isCasting.value ? castTime.value : localTime.value));
@@ -198,16 +197,6 @@ const jwOrgUrl = computed(() => {
   return `https://www.jw.org/finder?locale=${locale}&category=${video.primaryCategory}&lank=${video.languageAgnosticNaturalKey}`;
 });
 
-const captionUrl = computed(() => {
-  const found = videoMedia.value?.files.find(f => f?.subtitles?.url);
-  return found?.subtitles?.url ?? null;
-});
-
-const subtitleUrl = computed(() => {
-  const found = subtitleMedia.value?.files.find(f => f?.subtitles?.url);
-  return found?.subtitles?.url ?? null;
-});
-
 const availableLanguages = computed(() => {
   if (!store.selectedVideo) {
     return [];
@@ -225,37 +214,6 @@ const {
   seekTo: playerSeekTo,
   stop: stopPlayer,
 } = usePlyrPlayer(playerEl, { videoMedia, captionUrl, subtitleUrl, poster: videoPoster });
-
-async function loadMediaItems() {
-  if (!store.selectedVideo) {
-    return;
-  }
-  const { languageAgnosticNaturalKey: lank } = store.selectedVideo;
-  loading.value = true;
-  const requests: Promise<void>[] = [];
-
-  if (!videoMedia.value) {
-    requests.push(
-      fetchMediaItem(store.getVideoLanguage!.code, lank).then(media => {
-        if (media) {
-          videoMedia.value = media;
-        }
-      }),
-    );
-  }
-  if (!subtitleMedia.value) {
-    requests.push(
-      fetchMediaItem(store.getSubtitleLanguage!.code, lank).then(media => {
-        if (media) {
-          subtitleMedia.value = media;
-        }
-      }),
-    );
-  }
-
-  await Promise.allSettled(requests);
-  loading.value = false;
-}
 
 // Re-init player once media is loaded
 watch(loading, async isLoading => {
@@ -290,7 +248,8 @@ watch(
   },
 );
 
-// New video selected — reset and reload
+// New video selected — close the transcript and forget the old position
+// (media reloading itself is handled inside useMediaItems)
 watch(
   () => store.selectedVideo,
   video => {
@@ -299,36 +258,6 @@ watch(
     }
     store.setTranscriptDialog(false);
     resetResume();
-    videoMedia.value = null;
-    subtitleMedia.value = null;
-    // Pre-fill from selectedVideo if language matches
-    if (store.getSiteLanguage!.locale === store.getVideoLanguage!.locale) {
-      videoMedia.value = video;
-    }
-    if (store.getSiteLanguage!.locale === store.getSubtitleLanguage!.locale) {
-      subtitleMedia.value = video;
-    }
-    loadMediaItems();
-  },
-);
-
-// Audio language changed
-watch(
-  () => store.videoLanguage,
-  () => {
-    captureResume();
-    videoMedia.value = null;
-    loadMediaItems();
-  },
-);
-
-// Subtitle language changed
-watch(
-  () => store.subtitleLanguage,
-  () => {
-    captureResume();
-    subtitleMedia.value = null;
-    loadMediaItems();
   },
 );
 </script>
