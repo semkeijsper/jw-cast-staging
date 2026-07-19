@@ -58,6 +58,7 @@
         ref="containerEl"
         class="cue-list"
         :class="{ 'cue-list--filtered': isFiltering }"
+        @scroll="updateActiveAbove"
         @touchmove="onUserScroll"
         @wheel="onUserScroll"
       >
@@ -84,7 +85,7 @@
           v-if="userScrolled && !isFiltering && activeIndex >= 0"
           class="resume-btn"
           color="primary"
-          icon="mdi-arrow-down"
+          :icon="activeAbove ? 'mdi-arrow-up' : 'mdi-arrow-down'"
           size="small"
           @click="onResume"
         />
@@ -112,6 +113,7 @@ const containerEl = ref<HTMLElement | null>(null);
 const loading = ref(false);
 const cues = ref<SubtitleCue[]>([]);
 const userScrolled = ref(false);
+const activeAbove = ref(false);
 const query = ref<string | null>('');
 
 const activeIndex = computed(() => {
@@ -183,6 +185,15 @@ function onUserScroll() {
   userScrolled.value = true;
 }
 
+function updateActiveAbove() {
+  const container = containerEl.value;
+  const row = container?.children[activeIndex.value] as HTMLElement | undefined;
+  if (!container || !row) {
+    return;
+  }
+  activeAbove.value = row.offsetTop + row.clientHeight < container.scrollTop;
+}
+
 function onResume() {
   userScrolled.value = false;
   scrollToActive();
@@ -214,6 +225,9 @@ function onEscape(event: KeyboardEvent) {
 watch(activeIndex, () => {
   if (!userScrolled.value && !isFiltering.value) {
     scrollToActive();
+  }
+  else {
+    updateActiveAbove();
   }
 });
 

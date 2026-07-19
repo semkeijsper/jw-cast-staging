@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar color="primary" elevation="2">
+    <v-app-bar color="primary" elevation="2" :height="xs ? 56 : 64">
       <v-app-bar-title>JW Cast</v-app-bar-title>
 
       <template #append>
@@ -151,5 +151,11 @@ html {
 .v-main {
   height: 100dvh;
   overflow-y: auto;
+}
+
+/* Vuetify 2's dense lists also used a smaller title font;
+   Vuetify 3's compact density only reduces heights */
+.v-list--density-compact .v-list-item-title {
+  font-size: 0.8125rem;
 }
 </style>

@@ -17,6 +17,7 @@
               :item-title="languageLabel"
               item-value="locale"
               :items="store.languages"
+              :list-props="{ density: 'compact' }"
               prepend-icon="mdi-translate"
               variant="outlined"
             />
@@ -85,7 +86,8 @@ function languageLabel(item: Language): string {
 }
 
 async function fetchLanguages() {
-  const code = ready.value ? store.getSiteLanguage!.code : '-';
+  const known = store.languages.some(l => l.locale === store.siteLanguage);
+  const code = known ? store.getSiteLanguage!.code : '-';
   const url = `${store.mediatorUrl}/languages/${code}/all?clientType=www`;
   const { languages } = await $fetch<{ languages: Language[] }>(url);
 
@@ -153,6 +155,11 @@ watch(videoId, id => {
 
 onMounted(async() => {
   store.setSiteLanguage(language.value);
+  // The seeded list only contains nl/en; for other locales load the full list
+  // first so the refetch below can use the localized language code
+  if (!store.languages.some(l => l.locale === store.siteLanguage)) {
+    await fetchLanguages();
+  }
   await Promise.allSettled([fetchLanguages(), fetchTranslations()]);
 
   if (videoId.value) {

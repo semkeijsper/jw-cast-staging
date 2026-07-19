@@ -50,7 +50,7 @@
 
               <div
                 v-if="response.messages[1]"
-                class="mt-1 text-title-small"
+                class="mt-1 text-title-small search-message"
                 v-html="response.messages[1].message"
               />
             </v-col>
@@ -63,6 +63,7 @@
                 item-title="label"
                 item-value="key"
                 :items="sortItems"
+                :list-props="{ density: 'compact' }"
                 prepend-icon="mdi-sort"
                 variant="outlined"
               />
@@ -91,12 +92,23 @@
                 @click="onClickResult(result)"
               />
             </v-col>
+
+            <v-col
+              v-for="i in placeholderCount"
+              :key="`placeholder-${i}`"
+              aria-hidden="true"
+              cols="12"
+              lg="4"
+              sm="6"
+            >
+              <div class="card-placeholder" />
+            </v-col>
           </v-row>
 
           <!-- Skeleton grid while loading -->
           <v-row v-else-if="!hasError" class="flex-grow-0">
             <v-col
-              v-for="i in columnCount"
+              v-for="i in skeletonCount"
               :key="i"
               cols="12"
               lg="4"
@@ -213,6 +225,15 @@ const columnCount = computed(() => {
       return 1;
     }
   }
+});
+
+const skeletonCount = computed(() => (smAndDown.value ? columnCount.value : LIMIT));
+
+const placeholderCount = computed(() => {
+  if (smAndDown.value || totalPages.value <= 1) {
+    return 0;
+  }
+  return Math.max(0, LIMIT - (response.value?.results.length ?? 0));
 });
 
 const totalPages = computed(() =>
@@ -338,6 +359,11 @@ onMounted(fetchToken);
 .search-container {
   min-height: 100%;
 }
+.search-message :deep(ul) {
+  margin-block: 8px;
+  padding-inline-start: 24px;
+  list-style: disc;
+}
 .pagination-sticky {
   position: sticky;
   bottom: 0;
@@ -346,6 +372,10 @@ onMounted(fetchToken);
 }
 .skeleton-card {
   aspect-ratio: 2 / 1;
+}
+.card-placeholder {
+  aspect-ratio: 2 / 1;
+  visibility: hidden;
 }
 .skeleton-card :deep(.v-skeleton-loader__image) {
   height: 100%;
