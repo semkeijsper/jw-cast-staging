@@ -40,7 +40,8 @@
               <v-divider class="my-1" />
 
               <v-list-item
-                :href="jwOrgUrl"
+                :disabled="!jwOrgUrl"
+                :href="jwOrgUrl ?? undefined"
                 prepend-icon="mdi-open-in-new"
                 target="_blank"
                 :title="store.translations.lnkHome"
@@ -157,6 +158,8 @@ const { isCastConnected, isMediaLoaded, currentTime: castTime, seekTo } = useCas
 const playerEl = ref<HTMLVideoElement | null>(null);
 let player: Plyr | undefined = undefined;
 let playerLoadId = 0;
+// Playback position to restore after a language switch rebuilds the player
+let resumeTime = 0;
 
 const loading = ref(true);
 const videoMedia = ref<Video | null>(null);
@@ -205,10 +208,12 @@ const videoPoster = computed(
 );
 
 const jwOrgUrl = computed(() => {
+  const video = store.selectedVideo ?? videoMedia.value;
+  if (!video) {
+    return null;
+  }
   const { locale } = store.getSiteLanguage!;
-  const { primaryCategory, languageAgnosticNaturalKey }
-    = store.selectedVideo ?? videoMedia.value ?? {};
-  return `https://www.jw.org/finder?locale=${locale}&category=${primaryCategory}&lank=${languageAgnosticNaturalKey}`;
+  return `https://www.jw.org/finder?locale=${locale}&category=${video.primaryCategory}&lank=${video.languageAgnosticNaturalKey}`;
 });
 
 const captionUrl = computed(() => {
@@ -243,6 +248,9 @@ function mediaUrl(language: Language): string {
 }
 
 async function loadMediaItems() {
+  if (!store.selectedVideo) {
+    return;
+  }
   loading.value = true;
   const requests: Promise<void>[] = [];
 
@@ -252,9 +260,6 @@ async function loadMediaItems() {
         const [media] = result.media;
         if (media) {
           videoMedia.value = media;
-        }
-        if (!store.selectedVideo && media) {
-          store.setSelectedVideo(media);
         }
       }),
     );
@@ -374,6 +379,15 @@ async function loadPlayer() {
     localTime.value = player?.currentTime ?? 0;
   });
 
+  const resume = resumeTime;
+  resumeTime = 0;
+  if (resume > 0) {
+    const instance = player;
+    instance.once('loadedmetadata', () => {
+      instance.currentTime = resume;
+    });
+  }
+
   player.source = {
     type: 'video',
     poster: videoPoster.value,
@@ -429,6 +443,7 @@ watch(
       return;
     }
     store.setTranscriptDialog(false);
+    resumeTime = 0;
     videoMedia.value = null;
     subtitleMedia.value = null;
     // Pre-fill from selectedVideo if language matches
@@ -446,6 +461,7 @@ watch(
 watch(
   () => store.videoLanguage,
   () => {
+    resumeTime = localTime.value;
     videoMedia.value = null;
     loadMediaItems();
   },
@@ -455,6 +471,7 @@ watch(
 watch(
   () => store.subtitleLanguage,
   () => {
+    resumeTime = localTime.value;
     subtitleMedia.value = null;
     loadMediaItems();
   },

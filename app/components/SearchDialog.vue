@@ -254,17 +254,32 @@ async function fetchToken() {
 
 async function fetchVideo(langCode: string | undefined, lank: string | undefined) {
   if (!langCode || !lank) {
+    hasError.value = true;
     return;
   }
-  const { media } = await $fetch<{ media: Video[] }>(
-    `${store.mediatorUrl}/media-items/${langCode}/${lank}?clientType=www`,
-  );
-  const [video] = media;
-  store.setSelectedVideo(video!);
-  store.setVideoDialog(true);
+  try {
+    const { media } = await $fetch<{ media: Video[] }>(
+      `${store.mediatorUrl}/media-items/${langCode}/${lank}?clientType=www`,
+    );
+    const [video] = media;
+    if (!video) {
+      hasError.value = true;
+      return;
+    }
+    store.setSelectedVideo(video);
+    store.setVideoDialog(true);
+  }
+  catch {
+    hasError.value = true;
+  }
 }
 
+// Guards against a slow earlier response overwriting a newer one
+// (page/sort changes bypass the debounce and can race)
+let requestId = 0;
+
 async function fetchResponse(query: string, retried = false) {
+  const id = retried ? requestId : ++requestId;
   isLoading.value = true;
   hasError.value = false;
   const url = `${store.searchUrl}/${store.getSiteLanguage!.code}/videos?sort=${sort.value}&offset=${offset.value}&limit=${LIMIT}&q=${encodeURIComponent(query)}`;
@@ -272,11 +287,17 @@ async function fetchResponse(query: string, retried = false) {
     const data = await $fetch<SearchResponse>(url, {
       headers: { Authorization: `Bearer ${jwt.value}` },
     });
+    if (id !== requestId) {
+      return;
+    }
     // Filter out category results — only show individual videos
     data.results = data.results.filter(r => r.subtype !== 'videoCategory');
     response.value = data;
   }
   catch (error) {
+    if (id !== requestId) {
+      return;
+    }
     if (!retried && error instanceof FetchError && error.response?.status === 401) {
       try {
         await fetchToken();
@@ -291,7 +312,9 @@ async function fetchResponse(query: string, retried = false) {
     }
   }
   finally {
-    isLoading.value = false;
+    if (id === requestId) {
+      isLoading.value = false;
+    }
   }
 }
 

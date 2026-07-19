@@ -28,6 +28,20 @@
       </v-col>
     </v-row>
 
+    <v-row v-if="loadFailed" justify="center">
+      <v-col cols="12" sm="12" xl="8">
+        <v-alert type="error" variant="tonal">
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+            <span>{{ loadErrorMessage }}</span>
+
+            <v-btn color="error" variant="outlined" @click="initPage(language)">
+              {{ retryLabel }}
+            </v-btn>
+          </div>
+        </v-alert>
+      </v-col>
+    </v-row>
+
     <template v-if="ready">
       <VideoCategory category-name="LatestVideos" divider grid>
         <template v-if="whatsappChannel" #title-actions>
@@ -63,8 +77,31 @@ const router = useRouter();
 const { xs } = useDisplay();
 
 const ready = ref(false);
+const loadFailed = ref(false);
 
 const whatsappChannel = computed(() => whatsappChannels[store.siteLanguage]);
+
+const loadErrorMessage = computed(() => {
+  switch (store.siteLanguage) {
+    case 'nl': {
+      return 'Laden is mislukt. Probeer het later opnieuw.';
+    }
+    default: {
+      return 'Loading failed. Please try again later.';
+    }
+  }
+});
+
+const retryLabel = computed(() => {
+  switch (store.siteLanguage) {
+    case 'nl': {
+      return 'Opnieuw proberen';
+    }
+    default: {
+      return 'Retry';
+    }
+  }
+});
 
 const language = computed(() => route.params.language as string);
 const videoId = computed(() => route.params.videoId as string | undefined);
@@ -131,19 +168,40 @@ async function openVideoFromUrl(lank: string) {
   }
 }
 
-// When route language changes (navigating between language pages)
-watch(
-  language,
-  async newLang => {
-    if (!store.languages.some(l => l.locale === newLang)) {
+async function initPage(locale: string) {
+  loadFailed.value = false;
+  // The seeded list only contains nl/en; unknown locales need the full list
+  // before they can be validated
+  if (!store.languages.some(l => l.locale === locale)) {
+    try {
+      await fetchLanguages();
+    }
+    catch {
+      loadFailed.value = true;
+      return;
+    }
+    if (!store.languages.some(l => l.locale === locale)) {
       router.replace('/en');
       return;
     }
-    store.setSiteLanguage(newLang);
-    await Promise.allSettled([fetchLanguages(), fetchTranslations()]);
-  },
-  { immediate: false },
-);
+  }
+  store.setSiteLanguage(locale);
+  // Refetch so language names and translations are localized to the new language
+  const results = await Promise.allSettled([fetchLanguages(), fetchTranslations()]);
+  if (results.some(r => r.status === 'rejected')) {
+    loadFailed.value = true;
+    return;
+  }
+
+  if (videoId.value && !ready.value) {
+    await openVideoFromUrl(videoId.value);
+  }
+
+  ready.value = true;
+}
+
+// Runs on mount and whenever the route language changes
+watch(language, locale => initPage(locale), { immediate: true });
 
 // When videoId disappears from URL (e.g. browser back), close the dialog
 watch(videoId, id => {
@@ -151,21 +209,5 @@ watch(videoId, id => {
     store.setVideoDialog(false);
     store.setSelectedVideo(null);
   }
-});
-
-onMounted(async() => {
-  store.setSiteLanguage(language.value);
-  // The seeded list only contains nl/en; for other locales load the full list
-  // first so the refetch below can use the localized language code
-  if (!store.languages.some(l => l.locale === store.siteLanguage)) {
-    await fetchLanguages();
-  }
-  await Promise.allSettled([fetchLanguages(), fetchTranslations()]);
-
-  if (videoId.value) {
-    await openVideoFromUrl(videoId.value);
-  }
-
-  ready.value = true;
 });
 </script>
