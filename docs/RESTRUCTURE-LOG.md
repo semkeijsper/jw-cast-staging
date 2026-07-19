@@ -40,3 +40,20 @@ Per phase (after its final sub-commit): `pnpm lint` + `nuxi typecheck` + `pnpm b
 - Phase 2 (`docs/verify/phase-2/`): all five open paths pass — grid ✅ (`01-grid.png`), swiper ✅ (`02-swiper.png`), search result ✅ (`03-search-result.png`), pasted real finder link ✅ (`04-pasted-link.png`), direct URL ✅ (`05-direct-url.png`).
 
 **Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
+
+---
+
+## Phase 3 — dismantle VideoDialog
+
+**Commits:** `c7cb9ef` (3a `usePlyrPlayer`), `0a3141f` (3b `useMediaItems`), `5f03faa` (3c `VideoDownloadMenu`), `d344bbc` (3d `useVideoRoute`).
+
+**Changed:**
+- `composables/usePlyrPlayer.ts` — Plyr lifecycle, load-id race guard, resume-position capture/restore, transcript-control injection, fullscreen Escape capture. API: `localTime`, `loadPlayer`, `captureResume`, `resetResume`, `seekTo`, `stop`.
+- `composables/useMediaItems.ts` — `videoMedia`/`subtitleMedia`/`loading` state, caption/subtitle URL computeds, selected-video and language watchers; `onBeforeLanguageReload` callback lets the player capture its position before a rebuild.
+- `components/player/VideoDownloadMenu.vue` — toolbar download menu + `jwOrgUrl` computed (used as `<PlayerVideoDownloadMenu>` until 5a).
+- `composables/useVideoRoute.ts` — single owner of `/:language/:videoId` sync, called from the page; the mirrored watchers in VideoDialog and the page are deleted. VideoDialog no longer touches the router at all.
+- VideoDialog: 549 → 290 lines; only dialog chrome, language selectors, transcript wiring, and cast handoff remain.
+
+**Browser checks** (`docs/verify/phase-3/`): open updates URL ✅ (`01-open.png`); close pops URL + dialog ✅ (`02-closed.png`); reopen re-initializes player ✅ (`03-reopen.png`); browser back closes dialog ✅ (`04-back.png`); transcript panel opens with 759 cues ✅ (`05-transcript.png`); transcript toggles off ✅. Phase 1 regression re-run post-refactor: all 3 still pass (position 30s→32.7s).
+
+**Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
