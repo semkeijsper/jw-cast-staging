@@ -354,15 +354,6 @@ async function loadPlayer() {
     localTime.value = player?.currentTime ?? 0;
   });
 
-  const resume = resumeTime;
-  resumeTime = 0;
-  if (resume > 0) {
-    const instance = player;
-    instance.once('loadedmetadata', () => {
-      instance.currentTime = resume;
-    });
-  }
-
   player.source = {
     type: 'video',
     poster: videoPoster.value,
@@ -375,6 +366,26 @@ async function loadPlayer() {
       })) ?? [],
     tracks,
   };
+
+  const resume = resumeTime;
+  resumeTime = 0;
+  if (resume > 0) {
+    const instance = player;
+    // Plyr's source setter swaps in a fresh media element asynchronously, so
+    // seek only once it re-emits 'ready'. Set the element's currentTime
+    // directly (Plyr's own setter bails while duration is still unknown) —
+    // before metadata this records the default playback start position —
+    // and re-assert on loadedmetadata once the real duration is in.
+    instance.once('ready', () => {
+      const media = instance.elements.container?.querySelector('video');
+      if (media) {
+        media.currentTime = resume;
+      }
+    });
+    instance.once('loadedmetadata', () => {
+      instance.currentTime = resume;
+    });
+  }
 }
 
 // Re-init player once media is loaded
@@ -436,7 +447,7 @@ watch(
 watch(
   () => store.videoLanguage,
   () => {
-    resumeTime = localTime.value;
+    resumeTime = player?.currentTime ?? localTime.value;
     videoMedia.value = null;
     loadMediaItems();
   },
@@ -446,7 +457,7 @@ watch(
 watch(
   () => store.subtitleLanguage,
   () => {
-    resumeTime = localTime.value;
+    resumeTime = player?.currentTime ?? localTime.value;
     subtitleMedia.value = null;
     loadMediaItems();
   },
