@@ -9,7 +9,8 @@ import type { Video } from '~/types';
  * the player uses it to capture the playback position it should restore.
  */
 export function useMediaItems(onBeforeLanguageReload?: () => void) {
-  const store = useAppStore();
+  const languageStore = useLanguageStore();
+  const uiStore = useUiStore();
 
   const loading = ref(true);
   const videoMedia = ref<Video | null>(null);
@@ -26,16 +27,16 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
   });
 
   async function loadMediaItems() {
-    if (!store.selectedVideo) {
+    if (!uiStore.selectedVideo) {
       return;
     }
-    const { languageAgnosticNaturalKey: lank } = store.selectedVideo;
+    const { languageAgnosticNaturalKey: lank } = uiStore.selectedVideo;
     loading.value = true;
     const requests: Promise<void>[] = [];
 
     if (!videoMedia.value) {
       requests.push(
-        fetchMediaItem(store.getVideoLanguage!.code, lank).then(media => {
+        fetchMediaItem(languageStore.getVideoLanguage!.code, lank).then(media => {
           if (media) {
             videoMedia.value = media;
           }
@@ -44,7 +45,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
     }
     if (!subtitleMedia.value) {
       requests.push(
-        fetchMediaItem(store.getSubtitleLanguage!.code, lank).then(media => {
+        fetchMediaItem(languageStore.getSubtitleLanguage!.code, lank).then(media => {
           if (media) {
             subtitleMedia.value = media;
           }
@@ -58,7 +59,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
 
   // New video selected — reset and reload
   watch(
-    () => store.selectedVideo,
+    () => uiStore.selectedVideo,
     video => {
       if (!video) {
         return;
@@ -66,10 +67,10 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
       videoMedia.value = null;
       subtitleMedia.value = null;
       // Pre-fill from selectedVideo if language matches
-      if (store.getSiteLanguage!.locale === store.getVideoLanguage!.locale) {
+      if (languageStore.getSiteLanguage!.locale === languageStore.getVideoLanguage!.locale) {
         videoMedia.value = video;
       }
-      if (store.getSiteLanguage!.locale === store.getSubtitleLanguage!.locale) {
+      if (languageStore.getSiteLanguage!.locale === languageStore.getSubtitleLanguage!.locale) {
         subtitleMedia.value = video;
       }
       loadMediaItems();
@@ -78,7 +79,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
 
   // Audio language changed
   watch(
-    () => store.videoLanguage,
+    () => languageStore.videoLanguage,
     () => {
       onBeforeLanguageReload?.();
       videoMedia.value = null;
@@ -88,7 +89,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
 
   // Subtitle language changed
   watch(
-    () => store.subtitleLanguage,
+    () => languageStore.subtitleLanguage,
     () => {
       onBeforeLanguageReload?.();
       subtitleMedia.value = null;

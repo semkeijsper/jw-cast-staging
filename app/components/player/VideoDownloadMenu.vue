@@ -7,7 +7,7 @@
     </template>
 
     <v-list density="compact">
-      <v-list-subheader>{{ store.t('btnDownload') }}</v-list-subheader>
+      <v-list-subheader>{{ languageStore.t('btnDownload') }}</v-list-subheader>
 
       <v-list-item
         v-for="file in downloadableFiles(videoMedia)"
@@ -21,7 +21,7 @@
         :disabled="!subtitleUrl"
         :href="subtitleUrl ?? undefined"
         prepend-icon="mdi-download"
-        :title="`${store.t('hdgSubtitles')} (.vtt)`"
+        :title="`${languageStore.t('hdgSubtitles')} (.vtt)`"
       />
 
       <v-divider class="my-1" />
@@ -31,7 +31,7 @@
         :href="jwOrgUrl ?? undefined"
         prepend-icon="mdi-open-in-new"
         target="_blank"
-        :title="store.t('lnkHome')"
+        :title="languageStore.t('lnkHome')"
       />
     </v-list>
   </v-menu>
@@ -45,14 +45,15 @@ const props = defineProps<{
   subtitleUrl: string | null;
 }>();
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 
 const jwOrgUrl = computed(() => {
-  const video = store.selectedVideo ?? props.videoMedia;
+  const video = uiStore.selectedVideo ?? props.videoMedia;
   if (!video) {
     return null;
   }
-  const { locale } = store.getSiteLanguage!;
+  const { locale } = languageStore.getSiteLanguage!;
   return `https://www.jw.org/finder?locale=${locale}&category=${video.primaryCategory}&lank=${video.languageAgnosticNaturalKey}`;
 });
 </script>

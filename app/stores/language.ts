@@ -1,9 +1,9 @@
-import type { Language, Translations, Video } from '~/types';
+import type { Language, Translations } from '~/types';
 import { uiStrings } from '~/config/uiStrings';
 import { whatsappChannels } from '~/config/whatsappChannels';
 
-export const useAppStore = defineStore('app', () => {
-  // Seeded with Dutch + English; expanded by fetchLanguages()
+export const useLanguageStore = defineStore('language', () => {
+  // Seeded with Dutch + English; expanded by the page's language fetch
   const languages = ref<Language[]>([
     { code: 'O', locale: 'nl', vernacular: 'Nederlands', name: 'Nederlands' },
     { code: 'E', locale: 'en', vernacular: 'English', name: 'Engels' },
@@ -19,12 +19,6 @@ export const useAppStore = defineStore('app', () => {
   const subtitleLanguageCookie = useCookie<string>('jw_subtitleLanguage');
   const videoLanguage = ref(videoLanguageCookie.value || 'en');
   const subtitleLanguage = ref(subtitleLanguageCookie.value || 'nl');
-
-  const searchDialog = ref(false);
-  const videoDialog = ref(false);
-  const transcriptDialog = ref(false);
-  const getNotifiedDialog = ref(false);
-  const selectedVideo = ref<Video | null>(null);
 
   // Computed getters
   const getSiteLanguage = computed(
@@ -77,28 +71,6 @@ export const useAppStore = defineStore('app', () => {
   function setSubtitleLanguage(value: string) {
     subtitleLanguage.value = value;
   }
-  function setSearchDialog(value: boolean) {
-    searchDialog.value = value;
-  }
-  function setVideoDialog(value: boolean) {
-    videoDialog.value = value;
-  }
-  function setTranscriptDialog(value: boolean) {
-    transcriptDialog.value = value;
-  }
-  function setGetNotifiedDialog(value: boolean) {
-    getNotifiedDialog.value = value;
-  }
-  function setSelectedVideo(value: Video | null) {
-    selectedVideo.value = value;
-  }
-
-  // Select a video and open the player dialog — the single entry point for
-  // every open path (grid, swiper, search result, pasted link, direct URL)
-  function openVideo(video: Video) {
-    selectedVideo.value = video;
-    videoDialog.value = true;
-  }
 
   return {
     languages,
@@ -106,11 +78,6 @@ export const useAppStore = defineStore('app', () => {
     siteLanguage,
     videoLanguage,
     subtitleLanguage,
-    searchDialog,
-    videoDialog,
-    transcriptDialog,
-    getNotifiedDialog,
-    selectedVideo,
     getSiteLanguage,
     getVideoLanguage,
     getSubtitleLanguage,
@@ -123,15 +90,12 @@ export const useAppStore = defineStore('app', () => {
     setSiteLanguage,
     setVideoLanguage,
     setSubtitleLanguage,
-    setSearchDialog,
-    setVideoDialog,
-    setTranscriptDialog,
-    setGetNotifiedDialog,
-    setSelectedVideo,
-    openVideo,
   };
 }, {
   persist: {
+    // Pinned to the pre-split store id so the existing cookie keeps working;
+    // the persisted field names must not change either
+    key: 'app',
     pick: ['videoLanguage', 'subtitleLanguage'],
   },
 });

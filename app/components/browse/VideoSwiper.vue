@@ -16,7 +16,7 @@
         class="mb-4"
         :src="video.images.lss.lg"
         :title="video.title"
-        @click="store.openVideo(video)"
+        @click="uiStore.openVideo(video)"
       />
     </SwiperSlide>
   </Swiper>
@@ -30,7 +30,7 @@ import { useDisplay } from 'vuetify';
 
 defineProps<{ videos: Video[] }>();
 
-const store = useAppStore();
+const uiStore = useUiStore();
 const { mdAndUp } = useDisplay();
 
 const modules = [Navigation, Scrollbar, FreeMode];

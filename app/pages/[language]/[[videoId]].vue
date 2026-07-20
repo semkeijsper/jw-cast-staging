@@ -4,7 +4,7 @@
       <v-col class="mt-3" cols="12" sm="12" xl="8">
         <!-- Page title — zero-width space keeps layout stable while loading -->
         <span class="text-display-medium font-weight-bold">
-          {{ store.translations.hdgVideos || '\u200D' }}
+          {{ languageStore.translations.hdgVideos || '\u200D' }}
         </span>
 
         <v-row>
@@ -13,7 +13,7 @@
               v-model="siteLanguage"
               class="mt-4"
               icon="mdi-translate"
-              :items="store.languages"
+              :items="languageStore.languages"
             />
           </v-col>
         </v-row>
@@ -26,10 +26,10 @@
       <v-col cols="12" sm="12" xl="8">
         <v-alert type="error" variant="tonal">
           <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-            <span>{{ store.t('loadFailed') }}</span>
+            <span>{{ languageStore.t('loadFailed') }}</span>
 
             <v-btn color="error" variant="outlined" @click="initPage(language)">
-              {{ store.t('retry') }}
+              {{ languageStore.t('retry') }}
             </v-btn>
           </div>
         </v-alert>
@@ -38,10 +38,10 @@
 
     <template v-if="ready">
       <VideoCategory category-name="LatestVideos" divider grid>
-        <template v-if="store.whatsappChannel" #title-actions>
-          <v-btn color="primary" variant="outlined" @click="store.setGetNotifiedDialog(true)">
+        <template v-if="languageStore.whatsappChannel" #title-actions>
+          <v-btn color="primary" variant="outlined" @click="uiStore.setGetNotifiedDialog(true)">
             <v-icon :start="!xs">mdi-bell</v-icon>
-            <span class="d-none d-sm-inline">{{ store.whatsappChannel.ctaLabel }}</span>
+            <span class="d-none d-sm-inline">{{ languageStore.whatsappChannel.ctaLabel }}</span>
           </v-btn>
         </template>
       </VideoCategory>
@@ -63,7 +63,8 @@ definePageMeta({
   key: route => route.params.language as string,
 });
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 const route = useRoute();
 const router = useRouter();
 const { xs } = useDisplay();
@@ -76,19 +77,19 @@ const videoId = computed(() => route.params.videoId as string | undefined);
 
 // Two-way binding for the language autocomplete
 const siteLanguage = computed({
-  get: () => store.getSiteLanguage?.locale ?? 'nl',
+  get: () => languageStore.getSiteLanguage?.locale ?? 'nl',
   set: (value: string) => {
     if (!value) {
       return;
     }
-    store.setSiteLanguage(value);
+    languageStore.setSiteLanguage(value);
     router.push(`/${value}`);
   },
 });
 
 async function loadLanguages() {
-  const known = store.languages.some(l => l.locale === store.siteLanguage);
-  const languages = await fetchLanguages(known ? store.getSiteLanguage!.code : '-');
+  const known = languageStore.languages.some(l => l.locale === languageStore.siteLanguage);
+  const languages = await fetchLanguages(known ? languageStore.getSiteLanguage!.code : '-');
 
   // Pin Dutch and English at the top
   const nl = languages.find(l => l.locale === 'nl');
@@ -101,21 +102,21 @@ async function loadLanguages() {
     rest.splice(nl ? 1 : 0, 0, en);
   }
 
-  store.setLanguages(rest);
+  languageStore.setLanguages(rest);
 }
 
 async function loadTranslations() {
-  const translations = await fetchTranslations(store.getSiteLanguage!.code);
+  const translations = await fetchTranslations(languageStore.getSiteLanguage!.code);
   if (translations) {
-    store.setTranslations(translations);
+    languageStore.setTranslations(translations);
   }
 }
 
 async function openVideoFromUrl(lank: string) {
   try {
-    const video = await fetchMediaItem(store.getSiteLanguage?.code ?? 'E', lank);
+    const video = await fetchMediaItem(languageStore.getSiteLanguage?.code ?? 'E', lank);
     if (video) {
-      store.openVideo(video);
+      uiStore.openVideo(video);
     }
   }
   catch {
@@ -127,7 +128,7 @@ async function initPage(locale: string) {
   loadFailed.value = false;
   // The seeded list only contains nl/en; unknown locales need the full list
   // before they can be validated
-  if (!store.languages.some(l => l.locale === locale)) {
+  if (!languageStore.languages.some(l => l.locale === locale)) {
     try {
       await loadLanguages();
     }
@@ -135,12 +136,12 @@ async function initPage(locale: string) {
       loadFailed.value = true;
       return;
     }
-    if (!store.languages.some(l => l.locale === locale)) {
+    if (!languageStore.languages.some(l => l.locale === locale)) {
       router.replace('/en');
       return;
     }
   }
-  store.setSiteLanguage(locale);
+  languageStore.setSiteLanguage(locale);
   // Refetch so language names and translations are localized to the new language
   const results = await Promise.allSettled([loadLanguages(), loadTranslations()]);
   if (results.some(r => r.status === 'rejected')) {

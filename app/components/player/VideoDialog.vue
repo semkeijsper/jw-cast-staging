@@ -2,13 +2,13 @@
   <v-dialog
     v-model="dialog"
     :fullscreen="smAndDown"
-    :max-width="store.transcriptDialog && !smAndDown ? '1240px' : '900px'"
+    :max-width="uiStore.transcriptDialog && !smAndDown ? '1240px' : '900px'"
     transition="dialog-bottom-transition"
   >
-    <v-card v-if="store.selectedVideo">
+    <v-card v-if="uiStore.selectedVideo">
       <v-toolbar density="compact">
         <v-toolbar-title style="word-break: normal; user-select: none;">
-          {{ `${store.selectedVideo.title} (${store.selectedVideo.durationFormattedHHMM})` }}
+          {{ `${uiStore.selectedVideo.title} (${uiStore.selectedVideo.durationFormattedHHMM})` }}
         </v-toolbar-title>
 
         <template #append>
@@ -33,7 +33,7 @@
 
       <!-- Player -->
       <template v-else>
-        <div class="player-row" :class="{ 'player-row--split': store.transcriptDialog && !smAndDown }">
+        <div class="player-row" :class="{ 'player-row--split': uiStore.transcriptDialog && !smAndDown }">
           <v-responsive :aspect-ratio="16 / 9" class="player-frame">
             <video
               ref="playerEl"
@@ -46,7 +46,7 @@
           </v-responsive>
 
           <TranscriptPanel
-            v-if="store.transcriptDialog && !smAndDown"
+            v-if="uiStore.transcriptDialog && !smAndDown"
             class="transcript-side"
             :current-time="transcriptTime"
             :vtt-url="subtitleUrl"
@@ -55,7 +55,7 @@
         </div>
 
         <TranscriptPanel
-          v-if="store.transcriptDialog && smAndDown"
+          v-if="uiStore.transcriptDialog && smAndDown"
           class="transcript-below"
           closable
           :current-time="transcriptTime"
@@ -64,7 +64,7 @@
         />
       </template>
 
-      <v-card-text v-if="!(store.transcriptDialog && smAndDown)" class="px-3 pb-3 pt-0">
+      <v-card-text v-if="!(uiStore.transcriptDialog && smAndDown)" class="px-3 pb-3 pt-0">
         <v-container class="pa-3">
           <v-row :no-gutters="xs">
             <v-col cols="12" sm="6">
@@ -100,7 +100,8 @@
 <script setup lang="ts">
 import { useDisplay } from 'vuetify';
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 const { xs, smAndDown } = useDisplay();
 const { isCastConnected, isMediaLoaded, currentTime: castTime, seekTo: castSeekTo } = useCast();
 
@@ -122,40 +123,40 @@ function onSeekTranscript(seconds: number) {
 }
 
 const dialog = computed({
-  get: () => store.videoDialog,
-  set: v => store.setVideoDialog(v),
+  get: () => uiStore.videoDialog,
+  set: v => uiStore.setVideoDialog(v),
 });
 
 const videoLanguage = computed({
-  get: () => store.getVideoLanguage!.locale,
+  get: () => languageStore.getVideoLanguage!.locale,
   set: (v: string) => {
     if (!v) {
       return;
     }
-    store.setVideoLanguage(v);
+    languageStore.setVideoLanguage(v);
   },
 });
 
 const subtitleLanguage = computed({
-  get: () => store.getSubtitleLanguage!.locale,
+  get: () => languageStore.getSubtitleLanguage!.locale,
   set: (v: string) => {
     if (!v) {
       return;
     }
-    store.setSubtitleLanguage(v);
+    languageStore.setSubtitleLanguage(v);
   },
 });
 
 const videoPoster = computed(
-  () => (store.selectedVideo ?? videoMedia.value)?.images.wss.lg,
+  () => (uiStore.selectedVideo ?? videoMedia.value)?.images.wss.lg,
 );
 
 const availableLanguages = computed(() => {
-  if (!store.selectedVideo) {
+  if (!uiStore.selectedVideo) {
     return [];
   }
-  return store.languages.filter(l =>
-    store.selectedVideo!.availableLanguages.includes(l.code),
+  return languageStore.languages.filter(l =>
+    uiStore.selectedVideo!.availableLanguages.includes(l.code),
   );
 });
 
@@ -178,13 +179,13 @@ watch(loading, async isLoading => {
 
 // Stop playback when the dialog closes (URL sync lives in useVideoRoute)
 watch(
-  () => store.videoDialog,
+  () => uiStore.videoDialog,
   open => {
     if (!open) {
       stopPlayer();
-      store.setTranscriptDialog(false);
+      uiStore.setTranscriptDialog(false);
     }
-    else if (open && store.selectedVideo) {
+    else if (open && uiStore.selectedVideo) {
       // Reopening the same video remounts the dialog's <video> element without
       // any media watcher firing, so the player must be re-initialized here
       nextTick(() => loadPlayer());
@@ -195,12 +196,12 @@ watch(
 // New video selected — close the transcript and forget the old position
 // (media reloading itself is handled inside useMediaItems)
 watch(
-  () => store.selectedVideo,
+  () => uiStore.selectedVideo,
   video => {
     if (!video) {
       return;
     }
-    store.setTranscriptDialog(false);
+    uiStore.setTranscriptDialog(false);
     resetResume();
   },
 );

@@ -4,11 +4,11 @@
     color="primary"
     :disabled="subtitleUrl === null"
     :loading="!subtitleMedia"
-    :prepend-icon="store.transcriptDialog ? 'mdi-arrow-left' : 'mdi-script-text-outline'"
-    :variant="store.transcriptDialog ? 'outlined' : 'elevated'"
-    @click="store.setTranscriptDialog(!store.transcriptDialog)"
+    :prepend-icon="uiStore.transcriptDialog ? 'mdi-arrow-left' : 'mdi-script-text-outline'"
+    :variant="uiStore.transcriptDialog ? 'outlined' : 'elevated'"
+    @click="uiStore.setTranscriptDialog(!uiStore.transcriptDialog)"
   >
-    {{ store.t('transcript') }}
+    {{ languageStore.t('transcript') }}
   </v-btn>
 </template>
 
@@ -20,5 +20,6 @@ defineProps<{
   subtitleUrl: string | null;
 }>();
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 </script>

@@ -36,13 +36,14 @@
 <script setup lang="ts">
 import { useDisplay } from 'vuetify';
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 const { xs } = useDisplay();
 
 const dialog = computed({
-  get: () => store.getNotifiedDialog,
-  set: v => store.setGetNotifiedDialog(v),
+  get: () => uiStore.getNotifiedDialog,
+  set: v => uiStore.setGetNotifiedDialog(v),
 });
 
-const channel = computed(() => store.whatsappChannel);
+const channel = computed(() => languageStore.whatsappChannel);
 </script>

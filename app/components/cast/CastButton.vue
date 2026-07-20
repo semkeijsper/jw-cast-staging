@@ -12,14 +12,14 @@
             variant="elevated"
             v-bind="{ ...menuProps, ...tooltipProps }"
           >
-            {{ store.t('btnPlay') }}
+            {{ languageStore.t('btnPlay') }}
           </v-btn>
         </template>
       </v-tooltip>
     </template>
 
     <v-list v-if="videoMedia" density="compact">
-      <v-list-subheader>{{ store.t('chromecast') }}</v-list-subheader>
+      <v-list-subheader>{{ languageStore.t('chromecast') }}</v-list-subheader>
 
       <v-list-item
         v-for="file in downloadableFiles(videoMedia)"
@@ -41,17 +41,18 @@ const props = defineProps<{
   subtitleUrl: string | null;
 }>();
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 const { isAvailable: castAvailable, castMedia } = useCast();
 
 const tooltipText = computed(() =>
   props.subtitleUrl
-    ? store.t('btnPlayWithSubtitles')
-    : store.t('btnPlayWithoutSubtitles'),
+    ? languageStore.t('btnPlayWithSubtitles')
+    : languageStore.t('btnPlayWithoutSubtitles'),
 );
 
 async function onSelectFile(file: MediaFile) {
-  const title = store.selectedVideo?.title ?? '';
+  const title = uiStore.selectedVideo?.title ?? '';
   await castMedia(file.progressiveDownloadURL, title, props.subtitleUrl);
 }
 </script>

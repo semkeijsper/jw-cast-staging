@@ -5,13 +5,13 @@
  * segment disappears (e.g. browser back).
  */
 export function useVideoRoute() {
-  const store = useAppStore();
+  const uiStore = useUiStore();
   const route = useRoute();
   const router = useRouter();
 
   // Dialog state → URL
   watch(
-    () => store.videoDialog,
+    () => uiStore.videoDialog,
     open => {
       const lang = route.params.language as string;
       if (!open) {
@@ -19,8 +19,8 @@ export function useVideoRoute() {
           router.push(`/${lang}`);
         }
       }
-      else if (store.selectedVideo) {
-        const lank = store.selectedVideo.languageAgnosticNaturalKey;
+      else if (uiStore.selectedVideo) {
+        const lank = uiStore.selectedVideo.languageAgnosticNaturalKey;
         if (route.params.videoId !== lank) {
           router.push(`/${lang}/${lank}`);
         }
@@ -32,9 +32,9 @@ export function useVideoRoute() {
   watch(
     () => route.params.videoId,
     id => {
-      if (!id && store.videoDialog) {
-        store.setVideoDialog(false);
-        store.setSelectedVideo(null);
+      if (!id && uiStore.videoDialog) {
+        uiStore.setVideoDialog(false);
+        uiStore.setSelectedVideo(null);
       }
     },
   );

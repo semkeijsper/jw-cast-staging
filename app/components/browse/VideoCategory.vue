@@ -25,7 +25,7 @@ const props = defineProps<{
   filter?: RegExp;
 }>();
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
 const category = ref<Category | null>(null);
 
 const media = computed<Video[]>(() => {
@@ -40,7 +40,7 @@ const media = computed<Video[]>(() => {
 
 async function loadCategory() {
   try {
-    category.value = await fetchCategory(store.getSiteLanguage!.code, props.categoryName, props.limit);
+    category.value = await fetchCategory(languageStore.getSiteLanguage!.code, props.categoryName, props.limit);
   }
   catch {
     category.value = null;
@@ -48,7 +48,7 @@ async function loadCategory() {
 }
 
 watch(
-  () => store.getSiteLanguage,
+  () => languageStore.getSiteLanguage,
   (newLang, oldLang) => {
     if (newLang?.locale !== oldLang?.locale) {
       loadCategory();

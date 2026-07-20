@@ -21,7 +21,8 @@ export function usePlyrPlayer(
     poster: Ref<string | undefined>;
   },
 ) {
-  const store = useAppStore();
+  const languageStore = useLanguageStore();
+  const uiStore = useUiStore();
   const { smAndDown } = useDisplay();
 
   let player: Plyr | undefined = undefined;
@@ -33,7 +34,7 @@ export function usePlyrPlayer(
   let transcriptBtn: HTMLButtonElement | null = null;
 
   function syncTranscriptButton() {
-    transcriptBtn?.setAttribute('aria-pressed', String(store.transcriptDialog));
+    transcriptBtn?.setAttribute('aria-pressed', String(uiStore.transcriptDialog));
   }
 
   // Plyr has no API for extra controls; insert a button into its control bar.
@@ -53,7 +54,7 @@ export function usePlyrPlayer(
       = `<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">`
         + `<path fill="currentColor" d="${TRANSCRIPT_ICON_PATH}"/></svg>`
         + '<span class="plyr__sr-only">Transcript</span>';
-    btn.addEventListener('click', () => store.setTranscriptDialog(!store.transcriptDialog));
+    btn.addEventListener('click', () => uiStore.setTranscriptDialog(!uiStore.transcriptDialog));
     const fullscreenBtn = player.elements.buttons.fullscreen;
     if (fullscreenBtn && fullscreenBtn.parentElement === controls) {
       fullscreenBtn.before(btn);
@@ -65,7 +66,7 @@ export function usePlyrPlayer(
     syncTranscriptButton();
   }
 
-  watch(() => store.transcriptDialog, syncTranscriptButton);
+  watch(() => uiStore.transcriptDialog, syncTranscriptButton);
 
   // Escape while in fullscreen should only exit fullscreen (browser default),
   // not also bubble into Vuetify's overlay and close the whole dialog
@@ -98,23 +99,23 @@ export function usePlyrPlayer(
     if (source.captionUrl.value) {
       tracks.push({
         kind: 'captions',
-        label: languageLabel(store.getVideoLanguage!),
-        srcLang: store.getVideoLanguage!.locale,
+        label: languageLabel(languageStore.getVideoLanguage!),
+        srcLang: languageStore.getVideoLanguage!.locale,
         src: source.captionUrl.value,
       });
     }
     if (source.subtitleUrl.value) {
       tracks.push({
         kind: 'subtitles',
-        label: languageLabel(store.getSubtitleLanguage!),
-        srcLang: store.getSubtitleLanguage!.locale,
+        label: languageLabel(languageStore.getSubtitleLanguage!),
+        srcLang: languageStore.getSubtitleLanguage!.locale,
         src: source.subtitleUrl.value,
       });
     }
 
     player = new Plyr(playerEl.value, {
       quality: { default: 1080, options: [1080, 720, 480, 360, 240] },
-      captions: { active: true, language: store.getSubtitleLanguage!.locale, update: true },
+      captions: { active: true, language: languageStore.getSubtitleLanguage!.locale, update: true },
       // Few enough options that the settings menu can't soft-lock
       speed: { selected: 1, options: [0.75, 1, 1.25, 1.5] },
       // Fullscreen the whole row so the transcript panel stays visible (desktop)
@@ -130,7 +131,7 @@ export function usePlyrPlayer(
     player.source = {
       type: 'video',
       poster: source.poster.value,
-      title: store.selectedVideo?.title,
+      title: uiStore.selectedVideo?.title,
       sources: source.videoMedia.value.files.map(f => ({
         src: f.progressiveDownloadURL,
         type: f.mimetype,

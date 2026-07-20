@@ -4,17 +4,17 @@
       <v-app-bar-title>JW Cast</v-app-bar-title>
 
       <template #append>
-        <template v-if="store.translations.lnkSearch">
+        <template v-if="languageStore.translations.lnkSearch">
           <v-btn
             v-if="!xs"
             prepend-icon="mdi-magnify"
             variant="text"
-            @click="store.setSearchDialog(true)"
+            @click="uiStore.setSearchDialog(true)"
           >
-            {{ store.t('lnkSearch') }}
+            {{ languageStore.t('lnkSearch') }}
           </v-btn>
 
-          <v-btn v-else icon @click="store.setSearchDialog(true)">
+          <v-btn v-else icon @click="uiStore.setSearchDialog(true)">
             <v-icon>mdi-magnify</v-icon>
           </v-btn>
         </template>
@@ -46,7 +46,8 @@
 import { useDisplay, useTheme } from 'vuetify';
 import { uiStrings } from '~/config/uiStrings';
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 const { xs } = useDisplay();
 const { global: theme } = useTheme();
 const { initCast } = useCast();
@@ -59,7 +60,7 @@ onMounted(() => {
 // Local dict first for nl/en (jw.org's lnkHelpView is a different phrase),
 // API translation for other locales, English as the last resort
 const guideButtonText = computed(
-  () => uiStrings[store.siteLanguage]?.guide ?? store.translations.lnkHelpView ?? uiStrings.en!.guide!,
+  () => uiStrings[languageStore.siteLanguage]?.guide ?? languageStore.translations.lnkHelpView ?? uiStrings.en!.guide!,
 );
 </script>
 

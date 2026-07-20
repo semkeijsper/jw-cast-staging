@@ -6,7 +6,7 @@
         clearable
         density="compact"
         hide-details
-        :placeholder="store.t('lnkSearch')"
+        :placeholder="languageStore.t('lnkSearch')"
         prepend-inner-icon="mdi-magnify"
         variant="outlined"
         @keydown.esc="onEscape"
@@ -21,7 +21,7 @@
         density="comfortable"
         icon
         variant="text"
-        @click="store.setTranscriptDialog(false)"
+        @click="uiStore.setTranscriptDialog(false)"
       >
         <v-icon>mdi-close</v-icon>
       </v-btn>
@@ -35,7 +35,7 @@
       v-else-if="cues.length === 0"
       class="d-flex flex-grow-1 align-center justify-center pa-4 text-medium-emphasis"
     >
-      {{ store.t('noTranscript') }}
+      {{ languageStore.t('noTranscript') }}
     </div>
 
     <div v-else class="cue-area flex-grow-1">
@@ -50,7 +50,7 @@
         v-if="isFiltering && filteredCues.length === 0"
         class="d-flex flex-grow-1 align-center justify-center pa-4 text-medium-emphasis"
       >
-        {{ store.t('noResults') }}
+        {{ languageStore.t('noResults') }}
       </div>
 
       <div
@@ -107,7 +107,8 @@ const emit = defineEmits<{
   seek: [seconds: number];
 }>();
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 
 const containerEl = ref<HTMLElement | null>(null);
 const loading = ref(false);

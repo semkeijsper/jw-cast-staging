@@ -11,7 +11,7 @@
       <VideoCard
         :src="video.images.lss.lg"
         :title="video.title"
-        @click="store.openVideo(video)"
+        @click="uiStore.openVideo(video)"
       />
     </v-col>
   </v-row>
@@ -22,5 +22,5 @@ import type { Video } from '~/types';
 
 defineProps<{ videos: Video[] }>();
 
-const store = useAppStore();
+const uiStore = useUiStore();
 </script>

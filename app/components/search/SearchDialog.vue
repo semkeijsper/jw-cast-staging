@@ -15,7 +15,7 @@
           clearable
           density="compact"
           hide-details
-          :placeholder="store.t('searchPlaceholder')"
+          :placeholder="languageStore.t('searchPlaceholder')"
           prepend-inner-icon="mdi-magnify"
           single-line
           variant="outlined"
@@ -38,7 +38,7 @@
           <v-row v-if="hasError" class="flex-grow-0">
             <v-col cols="12">
               <v-alert type="error" variant="tonal">
-                {{ store.t('searchFailed') }}
+                {{ languageStore.t('searchFailed') }}
               </v-alert>
             </v-col>
           </v-row>
@@ -143,7 +143,8 @@ import type { SearchResponse, SearchResult } from '~/types';
 import { FetchError } from 'ofetch';
 import { useDisplay } from 'vuetify';
 
-const store = useAppStore();
+const languageStore = useLanguageStore();
+const uiStore = useUiStore();
 const { xs, smAndDown, name: breakpointName } = useDisplay();
 
 const LIMIT = 9;
@@ -160,8 +161,8 @@ const response = ref<SearchResponse | null>(null);
 const offset = ref(0);
 
 const dialog = computed({
-  get: () => store.searchDialog,
-  set: v => store.setSearchDialog(v),
+  get: () => uiStore.searchDialog,
+  set: v => uiStore.setSearchDialog(v),
 });
 
 // Debounced query setter
@@ -241,7 +242,7 @@ async function fetchVideo(langCode: string | undefined, lank: string | undefined
       hasError.value = true;
       return;
     }
-    store.openVideo(video);
+    uiStore.openVideo(video);
   }
   catch {
     hasError.value = true;
@@ -258,7 +259,7 @@ async function fetchResponse(query: string, retried = false) {
   hasError.value = false;
   try {
     const data = await fetchSearch(
-      store.getSiteLanguage!.code,
+      languageStore.getSiteLanguage!.code,
       query,
       { sort: sort.value, offset: offset.value, limit: LIMIT },
       jwt.value,
@@ -295,7 +296,7 @@ async function fetchResponse(query: string, retried = false) {
 }
 
 function onClickResult(result: SearchResult) {
-  fetchVideo(store.getSiteLanguage!.code, result.lank);
+  fetchVideo(languageStore.getSiteLanguage!.code, result.lank);
 }
 
 watch(searchQuery, async value => {
@@ -316,7 +317,7 @@ watch(searchQuery, async value => {
   if (finderRegex.test(value)) {
     const lang
       = wtLocaleRegex.exec(value)?.groups?.code
-        ?? store.findLanguageByLocale(localeRegex.exec(value)?.groups?.locale)?.code;
+        ?? languageStore.findLanguageByLocale(localeRegex.exec(value)?.groups?.locale)?.code;
     const lank = lankRegex.exec(value)?.groups?.lank;
     await fetchVideo(lang, lank);
     // Keep the query (and the error alert) when the link failed to resolve
@@ -328,7 +329,7 @@ watch(searchQuery, async value => {
 
   if (mediaItemsRegex.test(value)) {
     const match = mediaItemsRegex.exec(value);
-    const lang = store.findLanguageByLocale(match?.groups?.locale)?.code;
+    const lang = languageStore.findLanguageByLocale(match?.groups?.locale)?.code;
     const lank = match?.groups?.lank;
     await fetchVideo(lang, lank);
     if (!hasError.value) {
@@ -348,7 +349,7 @@ watch(sort, () => {
 });
 
 watch(
-  () => store.getSiteLanguage,
+  () => languageStore.getSiteLanguage,
   () => {
     searchQuery.value = '';
     response.value = null;
