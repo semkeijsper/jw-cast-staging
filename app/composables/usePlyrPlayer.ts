@@ -176,6 +176,10 @@ export function usePlyrPlayer(
     }
   }
 
+  function pause() {
+    player?.pause();
+  }
+
   // Full teardown on dialog close — cheaper than keeping a live instance
   // (and its buffers) around; reopening runs loadPlayer from scratch
   function destroy() {
@@ -183,5 +187,5 @@ export function usePlyrPlayer(
     player = undefined;
   }
 
-  return { localTime, loadPlayer, captureResume, resetResume, seekTo, destroy };
+  return { localTime, loadPlayer, captureResume, resetResume, seekTo, pause, destroy };
 }

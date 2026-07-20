@@ -88,7 +88,13 @@
         </v-container>
 
         <v-card-actions>
-          <CastButton :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" :video-media="videoMedia" />
+          <CastButton
+            :start-time="localTime"
+            :subtitle-media="subtitleMedia"
+            :subtitle-url="subtitleUrl"
+            :video-media="videoMedia"
+          />
+
           <v-spacer />
           <TranscriptButton :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
         </v-card-actions>
@@ -103,7 +109,7 @@ import { useDisplay } from 'vuetify';
 const languageStore = useLanguageStore();
 const uiStore = useUiStore();
 const { xs, smAndDown } = useDisplay();
-const { isCastConnected, isMediaLoaded, currentTime: castTime, seekTo: castSeekTo } = useCast();
+const { isCastConnected, isMediaLoaded, isConnecting, currentTime: castTime, seekTo: castSeekTo } = useCast();
 
 const playerEl = ref<HTMLVideoElement | null>(null);
 
@@ -166,8 +172,21 @@ const {
   captureResume,
   resetResume,
   seekTo: playerSeekTo,
+  pause: pausePlayer,
   destroy: destroyPlayer,
 } = usePlyrPlayer(playerEl, { videoMedia, captionUrl, subtitleUrl, poster: videoPoster });
+
+// Casting takes over playback: pause the local player as soon as a cast
+// session starts connecting so audio doesn't double up under the cast (and
+// the transcript switches to the cast position once its media loads)
+watch(
+  () => isConnecting.value || isCasting.value,
+  active => {
+    if (active) {
+      pausePlayer();
+    }
+  },
+);
 
 // Re-init player once media is loaded
 watch(loading, async isLoading => {

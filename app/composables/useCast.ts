@@ -120,13 +120,15 @@ export function useCast() {
   }
 
   /**
-   * Cast a video to a Chromecast device.
+   * Cast a video to a Chromecast device, optionally starting at `startTime`
+   * seconds (handoff from local playback).
    * Returns true on success, false on failure or if Cast is unavailable.
    */
   async function castMedia(
     videoUrl: string,
     title: string,
     subtitleUrl?: string | null,
+    startTime?: number,
   ): Promise<boolean> {
     if (!isAvailable.value) {
       return false;
@@ -172,6 +174,9 @@ export function useCast() {
       const request = new w.chrome!.cast.media.LoadRequest(mediaInfo);
       if (subtitleUrl) {
         request.activeTrackIds = [1];
+      }
+      if (startTime && startTime > 0) {
+        request.currentTime = startTime;
       }
 
       const session = context.getCurrentSession();

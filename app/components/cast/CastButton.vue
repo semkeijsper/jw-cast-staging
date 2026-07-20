@@ -39,6 +39,8 @@ const props = defineProps<{
   videoMedia: Video | null;
   subtitleMedia: Video | null;
   subtitleUrl: string | null;
+  /** Local playback position — the cast starts here (handoff) */
+  startTime?: number;
 }>();
 
 const languageStore = useLanguageStore();
@@ -53,6 +55,6 @@ const tooltipText = computed(() =>
 
 async function onSelectFile(file: MediaFile) {
   const title = uiStore.selectedVideo?.title ?? '';
-  await castMedia(file.progressiveDownloadURL, title, props.subtitleUrl);
+  await castMedia(file.progressiveDownloadURL, title, props.subtitleUrl, props.startTime);
 }
 </script>

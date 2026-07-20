@@ -75,6 +75,7 @@ export interface MediaMetadata {
 
 export interface LoadRequest {
   activeTrackIds: number[];
+  currentTime: number;
 }
 
 export interface TextTrackStyle {
