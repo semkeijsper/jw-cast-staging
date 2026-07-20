@@ -149,3 +149,13 @@ Please run the "Manual checks remaining" list at the top of this file (Chromecas
 **Commit:** `85d8290`.
 
 The unified toolbar recipe from Phase 6 regressed the UI: compact density cramped the search toolbar's text field, and the video dialog toolbar unintentionally turned primary. Both restored to their original styles (search: primary/default density at 64px; video dialog: colorless compact at 48px — browser-verified, `docs/verify/phase-6/03-search-toolbar-revert.png` / `04-video-toolbar-revert.png`). F-14 stands as **rejected**: the three dialogs' toolbars are intentionally different (one hosts an input, one sits over a player, one is a plain promo header). CLAUDE.md's "one toolbar recipe" line should be disregarded; correcting it next time CLAUDE.md is touched.
+
+---
+
+## Post-run feature fix — cast/local playback conflict
+
+**Commit:** see `feat(cast): pause local player and hand off position when casting starts`.
+
+Owner-reported: starting a cast left the local player running (double audio, transcript position conflict). Fix: VideoDialog watches `isConnecting || isCasting` and pauses the local Plyr instance the moment a cast session starts connecting; `castMedia` gained a `startTime` parameter mapped to `LoadRequest.currentTime`, and CastButton passes the local `localTime`, so the receiver resumes at the local position. Transcript continues to follow cast time once cast media loads (existing behavior).
+
+- [ ] **Manual check (Chromecast hardware):** play locally → cast → local pauses, cast starts at the local position, transcript follows cast; stop casting → local player resumes from its paused position on play.
