@@ -7,7 +7,7 @@
     transition="dialog-bottom-transition"
   >
     <v-card>
-      <v-toolbar class="flex-grow-0" color="primary" density="compact">
+      <v-toolbar class="flex-grow-0" color="primary">
         <v-text-field
           v-model="query"
           autofocus

@@ -6,7 +6,7 @@
     transition="dialog-bottom-transition"
   >
     <v-card v-if="uiStore.selectedVideo">
-      <v-toolbar color="primary" density="compact">
+      <v-toolbar density="compact">
         <v-toolbar-title class="dialog-title">
           {{ `${uiStore.selectedVideo.title} (${uiStore.selectedVideo.durationFormattedHHMM})` }}
         </v-toolbar-title>
