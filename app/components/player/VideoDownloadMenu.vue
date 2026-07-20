@@ -53,7 +53,7 @@ const jwOrgUrl = computed(() => {
   if (!video) {
     return null;
   }
-  const { locale } = languageStore.getSiteLanguage!;
+  const { locale } = languageStore.siteLanguageInfo;
   return `https://www.jw.org/finder?locale=${locale}&category=${video.primaryCategory}&lank=${video.languageAgnosticNaturalKey}`;
 });
 </script>

@@ -20,21 +20,23 @@ export const useLanguageStore = defineStore('language', () => {
   const videoLanguage = ref(videoLanguageCookie.value || 'en');
   const subtitleLanguage = ref(subtitleLanguageCookie.value || 'nl');
 
-  // Computed getters
-  const getSiteLanguage = computed(
-    () => languages.value.find(l => l.locale === siteLanguage.value) ?? languages.value[0],
+  // Resolved Language objects for the selected locales. `languages` is seeded
+  // non-empty and only ever replaced with fetched lists, so the [0] fallback
+  // always exists — typed as Language so call sites need no assertions.
+  const siteLanguageInfo = computed<Language>(
+    () => languages.value.find(l => l.locale === siteLanguage.value) ?? languages.value[0]!,
   );
-  const getVideoLanguage = computed(
+  const videoLanguageInfo = computed<Language>(
     () =>
       languages.value.find(l => l.locale === videoLanguage.value)
       ?? languages.value.find(l => l.locale === 'en')
-      ?? languages.value[0],
+      ?? languages.value[0]!,
   );
-  const getSubtitleLanguage = computed(
+  const subtitleLanguageInfo = computed<Language>(
     () =>
       languages.value.find(l => l.locale === subtitleLanguage.value)
       ?? languages.value.find(l => l.locale === 'nl')
-      ?? languages.value[0],
+      ?? languages.value[0]!,
   );
 
   const whatsappChannel = computed(() => whatsappChannels[siteLanguage.value]);
@@ -78,9 +80,9 @@ export const useLanguageStore = defineStore('language', () => {
     siteLanguage,
     videoLanguage,
     subtitleLanguage,
-    getSiteLanguage,
-    getVideoLanguage,
-    getSubtitleLanguage,
+    siteLanguageInfo,
+    videoLanguageInfo,
+    subtitleLanguageInfo,
     whatsappChannel,
     t,
     findLanguageByCode,

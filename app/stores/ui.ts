@@ -3,7 +3,7 @@ import type { Video } from '~/types';
 export const useUiStore = defineStore('ui', () => {
   const searchDialog = ref(false);
   const videoDialog = ref(false);
-  const transcriptDialog = ref(false);
+  const transcriptPanel = ref(false);
   const getNotifiedDialog = ref(false);
   const selectedVideo = ref<Video | null>(null);
 
@@ -14,8 +14,8 @@ export const useUiStore = defineStore('ui', () => {
   function setVideoDialog(value: boolean) {
     videoDialog.value = value;
   }
-  function setTranscriptDialog(value: boolean) {
-    transcriptDialog.value = value;
+  function setTranscriptPanel(value: boolean) {
+    transcriptPanel.value = value;
   }
   function setGetNotifiedDialog(value: boolean) {
     getNotifiedDialog.value = value;
@@ -34,12 +34,12 @@ export const useUiStore = defineStore('ui', () => {
   return {
     searchDialog,
     videoDialog,
-    transcriptDialog,
+    transcriptPanel,
     getNotifiedDialog,
     selectedVideo,
     setSearchDialog,
     setVideoDialog,
-    setTranscriptDialog,
+    setTranscriptPanel,
     setGetNotifiedDialog,
     setSelectedVideo,
     openVideo,

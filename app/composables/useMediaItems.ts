@@ -36,7 +36,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
 
     if (!videoMedia.value) {
       requests.push(
-        fetchMediaItem(languageStore.getVideoLanguage!.code, lank).then(media => {
+        fetchMediaItem(languageStore.videoLanguageInfo.code, lank).then(media => {
           if (media) {
             videoMedia.value = media;
           }
@@ -45,7 +45,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
     }
     if (!subtitleMedia.value) {
       requests.push(
-        fetchMediaItem(languageStore.getSubtitleLanguage!.code, lank).then(media => {
+        fetchMediaItem(languageStore.subtitleLanguageInfo.code, lank).then(media => {
           if (media) {
             subtitleMedia.value = media;
           }
@@ -67,10 +67,10 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
       videoMedia.value = null;
       subtitleMedia.value = null;
       // Pre-fill from selectedVideo if language matches
-      if (languageStore.getSiteLanguage!.locale === languageStore.getVideoLanguage!.locale) {
+      if (languageStore.siteLanguageInfo.locale === languageStore.videoLanguageInfo.locale) {
         videoMedia.value = video;
       }
-      if (languageStore.getSiteLanguage!.locale === languageStore.getSubtitleLanguage!.locale) {
+      if (languageStore.siteLanguageInfo.locale === languageStore.subtitleLanguageInfo.locale) {
         subtitleMedia.value = video;
       }
       loadMediaItems();

@@ -77,7 +77,7 @@ const videoId = computed(() => route.params.videoId as string | undefined);
 
 // Two-way binding for the language autocomplete
 const siteLanguage = computed({
-  get: () => languageStore.getSiteLanguage?.locale ?? 'nl',
+  get: () => languageStore.siteLanguageInfo.locale,
   set: (value: string) => {
     if (!value) {
       return;
@@ -89,7 +89,7 @@ const siteLanguage = computed({
 
 async function loadLanguages() {
   const known = languageStore.languages.some(l => l.locale === languageStore.siteLanguage);
-  const languages = await fetchLanguages(known ? languageStore.getSiteLanguage!.code : '-');
+  const languages = await fetchLanguages(known ? languageStore.siteLanguageInfo.code : '-');
 
   // Pin Dutch and English at the top
   const nl = languages.find(l => l.locale === 'nl');
@@ -106,7 +106,7 @@ async function loadLanguages() {
 }
 
 async function loadTranslations() {
-  const translations = await fetchTranslations(languageStore.getSiteLanguage!.code);
+  const translations = await fetchTranslations(languageStore.siteLanguageInfo.code);
   if (translations) {
     languageStore.setTranslations(translations);
   }
@@ -114,7 +114,7 @@ async function loadTranslations() {
 
 async function openVideoFromUrl(lank: string) {
   try {
-    const video = await fetchMediaItem(languageStore.getSiteLanguage?.code ?? 'E', lank);
+    const video = await fetchMediaItem(languageStore.siteLanguageInfo.code, lank);
     if (video) {
       uiStore.openVideo(video);
     }

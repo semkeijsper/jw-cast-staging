@@ -4,9 +4,9 @@
     color="primary"
     :disabled="subtitleUrl === null"
     :loading="!subtitleMedia"
-    :prepend-icon="uiStore.transcriptDialog ? 'mdi-arrow-left' : 'mdi-script-text-outline'"
-    :variant="uiStore.transcriptDialog ? 'outlined' : 'elevated'"
-    @click="uiStore.setTranscriptDialog(!uiStore.transcriptDialog)"
+    :prepend-icon="uiStore.transcriptPanel ? 'mdi-arrow-left' : 'mdi-script-text-outline'"
+    :variant="uiStore.transcriptPanel ? 'outlined' : 'elevated'"
+    @click="uiStore.setTranscriptPanel(!uiStore.transcriptPanel)"
   >
     {{ languageStore.t('transcript') }}
   </v-btn>

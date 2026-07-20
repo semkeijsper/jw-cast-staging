@@ -40,7 +40,7 @@ const media = computed<Video[]>(() => {
 
 async function loadCategory() {
   try {
-    category.value = await fetchCategory(languageStore.getSiteLanguage!.code, props.categoryName, props.limit);
+    category.value = await fetchCategory(languageStore.siteLanguageInfo.code, props.categoryName, props.limit);
   }
   catch {
     category.value = null;
@@ -48,7 +48,7 @@ async function loadCategory() {
 }
 
 watch(
-  () => languageStore.getSiteLanguage,
+  () => languageStore.siteLanguageInfo,
   (newLang, oldLang) => {
     if (newLang?.locale !== oldLang?.locale) {
       loadCategory();

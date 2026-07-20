@@ -259,7 +259,7 @@ async function fetchResponse(query: string, retried = false) {
   hasError.value = false;
   try {
     const data = await fetchSearch(
-      languageStore.getSiteLanguage!.code,
+      languageStore.siteLanguageInfo.code,
       query,
       { sort: sort.value, offset: offset.value, limit: LIMIT },
       jwt.value,
@@ -296,7 +296,7 @@ async function fetchResponse(query: string, retried = false) {
 }
 
 function onClickResult(result: SearchResult) {
-  fetchVideo(languageStore.getSiteLanguage!.code, result.lank);
+  fetchVideo(languageStore.siteLanguageInfo.code, result.lank);
 }
 
 watch(searchQuery, async value => {
@@ -349,7 +349,7 @@ watch(sort, () => {
 });
 
 watch(
-  () => languageStore.getSiteLanguage,
+  () => languageStore.siteLanguageInfo,
   () => {
     searchQuery.value = '';
     response.value = null;

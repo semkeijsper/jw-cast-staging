@@ -2,7 +2,7 @@
   <v-dialog
     v-model="dialog"
     :fullscreen="smAndDown"
-    :max-width="uiStore.transcriptDialog && !smAndDown ? '1240px' : '900px'"
+    :max-width="uiStore.transcriptPanel && !smAndDown ? '1240px' : '900px'"
     transition="dialog-bottom-transition"
   >
     <v-card v-if="uiStore.selectedVideo">
@@ -33,7 +33,7 @@
 
       <!-- Player -->
       <template v-else>
-        <div class="player-row" :class="{ 'player-row--split': uiStore.transcriptDialog && !smAndDown }">
+        <div class="player-row" :class="{ 'player-row--split': uiStore.transcriptPanel && !smAndDown }">
           <v-responsive :aspect-ratio="16 / 9" class="player-frame">
             <video
               ref="playerEl"
@@ -46,7 +46,7 @@
           </v-responsive>
 
           <TranscriptPanel
-            v-if="uiStore.transcriptDialog && !smAndDown"
+            v-if="uiStore.transcriptPanel && !smAndDown"
             class="transcript-side"
             :current-time="transcriptTime"
             :vtt-url="subtitleUrl"
@@ -55,7 +55,7 @@
         </div>
 
         <TranscriptPanel
-          v-if="uiStore.transcriptDialog && smAndDown"
+          v-if="uiStore.transcriptPanel && smAndDown"
           class="transcript-below"
           closable
           :current-time="transcriptTime"
@@ -64,7 +64,7 @@
         />
       </template>
 
-      <v-card-text v-if="!(uiStore.transcriptDialog && smAndDown)" class="px-3 pb-3 pt-0">
+      <v-card-text v-if="!(uiStore.transcriptPanel && smAndDown)" class="px-3 pb-3 pt-0">
         <v-container class="pa-3">
           <v-row :no-gutters="xs">
             <v-col cols="12" sm="6">
@@ -128,7 +128,7 @@ const dialog = computed({
 });
 
 const videoLanguage = computed({
-  get: () => languageStore.getVideoLanguage!.locale,
+  get: () => languageStore.videoLanguageInfo.locale,
   set: (v: string) => {
     if (!v) {
       return;
@@ -138,7 +138,7 @@ const videoLanguage = computed({
 });
 
 const subtitleLanguage = computed({
-  get: () => languageStore.getSubtitleLanguage!.locale,
+  get: () => languageStore.subtitleLanguageInfo.locale,
   set: (v: string) => {
     if (!v) {
       return;
@@ -183,7 +183,7 @@ watch(
   open => {
     if (!open) {
       stopPlayer();
-      uiStore.setTranscriptDialog(false);
+      uiStore.setTranscriptPanel(false);
     }
     else if (open && uiStore.selectedVideo) {
       // Reopening the same video remounts the dialog's <video> element without
@@ -201,7 +201,7 @@ watch(
     if (!video) {
       return;
     }
-    uiStore.setTranscriptDialog(false);
+    uiStore.setTranscriptPanel(false);
     resetResume();
   },
 );

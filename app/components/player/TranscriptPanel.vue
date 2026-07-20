@@ -21,7 +21,7 @@
         density="comfortable"
         icon
         variant="text"
-        @click="uiStore.setTranscriptDialog(false)"
+        @click="uiStore.setTranscriptPanel(false)"
       >
         <v-icon>mdi-close</v-icon>
       </v-btn>
