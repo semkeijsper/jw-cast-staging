@@ -7,7 +7,7 @@
     transition="dialog-bottom-transition"
   >
     <v-card>
-      <v-toolbar class="flex-grow-0" color="primary">
+      <v-toolbar class="flex-grow-0" color="primary" density="compact">
         <v-text-field
           v-model="query"
           autofocus
@@ -156,7 +156,6 @@ const sortKeys = ['rel', 'newest', 'oldest'];
 const isLoading = ref(false);
 const hasError = ref(false);
 const searchQuery = ref('');
-const debounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const response = ref<SearchResponse | null>(null);
 const offset = ref(0);
 
@@ -166,13 +165,15 @@ const dialog = computed({
 });
 
 // Debounced query setter
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 const query = computed({
   get: () => searchQuery.value,
   set: (value: string) => {
-    if (debounceTimer.value) {
-      clearTimeout(debounceTimer.value);
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
     }
-    debounceTimer.value = setTimeout(() => {
+    debounceTimer = setTimeout(() => {
       offset.value = 0;
       searchQuery.value = value;
     }, DEBOUNCE_MS);
@@ -183,10 +184,17 @@ const searchMessage = computed(
   () => response.value?.pagination?.label ?? response.value?.messages[0]?.message ?? '',
 );
 
+// The sort key lives in the link's ?sort= param; parse it instead of
+// substring-matching the whole URL
+function sortKeyOf(link: string): string | null {
+  const queryString = link.split('?')[1];
+  return queryString ? new URLSearchParams(queryString).get('sort') : null;
+}
+
 const sortItems = computed(() =>
   sortKeys.map(key => ({
     key,
-    label: response.value?.sorts.find(s => s.link.includes(key))?.label ?? key,
+    label: response.value?.sorts.find(s => sortKeyOf(s.link) === key)?.label ?? key,
   })),
 );
 
@@ -357,7 +365,16 @@ watch(
   },
 );
 
-onMounted(loadToken);
+// Fetch the JWT lazily on first open instead of on app start; the 401
+// retry in fetchResponse covers expiry
+watch(
+  () => uiStore.searchDialog,
+  open => {
+    if (open && !jwt.value) {
+      loadToken().catch(() => {});
+    }
+  },
+);
 </script>
 
 <style scoped>

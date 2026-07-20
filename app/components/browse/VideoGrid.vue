@@ -6,7 +6,6 @@
       cols="12"
       lg="4"
       sm="6"
-      xl="4"
     >
       <VideoCard
         :src="video.images.lss.lg"

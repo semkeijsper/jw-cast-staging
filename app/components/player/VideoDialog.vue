@@ -6,8 +6,8 @@
     transition="dialog-bottom-transition"
   >
     <v-card v-if="uiStore.selectedVideo">
-      <v-toolbar density="compact">
-        <v-toolbar-title style="word-break: normal; user-select: none;">
+      <v-toolbar color="primary" density="compact">
+        <v-toolbar-title class="dialog-title">
           {{ `${uiStore.selectedVideo.title} (${uiStore.selectedVideo.durationFormattedHHMM})` }}
         </v-toolbar-title>
 
@@ -37,11 +37,11 @@
           <v-responsive :aspect-ratio="16 / 9" class="player-frame">
             <video
               ref="playerEl"
+              class="player-video"
               controls
               crossorigin="anonymous"
               playsinline
               :poster="videoPoster"
-              style="width: 100%; height: 100%; object-fit: cover"
             />
           </v-responsive>
 
@@ -166,7 +166,7 @@ const {
   captureResume,
   resetResume,
   seekTo: playerSeekTo,
-  stop: stopPlayer,
+  destroy: destroyPlayer,
 } = usePlyrPlayer(playerEl, { videoMedia, captionUrl, subtitleUrl, poster: videoPoster });
 
 // Re-init player once media is loaded
@@ -182,7 +182,7 @@ watch(
   () => uiStore.videoDialog,
   open => {
     if (!open) {
-      stopPlayer();
+      destroyPlayer();
       uiStore.setTranscriptPanel(false);
     }
     else if (open && uiStore.selectedVideo) {
@@ -208,6 +208,15 @@ watch(
 </script>
 
 <style>
+.dialog-title {
+  word-break: normal;
+  user-select: none;
+}
+.player-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 /* v-responsive defaults to flex: 1 0 auto; inside the fullscreen dialog's
    flex-column card it grows past its 16:9 sizer on tall mobile viewports,
    which makes the covered video look stretched. */
@@ -215,18 +224,19 @@ watch(
   flex-grow: 0;
 }
 .player-row {
+  --transcript-width: 340px;
   position: relative;
   flex-grow: 0;
 }
 .player-row--split .player-frame {
-  width: calc(100% - 340px);
+  width: calc(100% - var(--transcript-width));
 }
 .transcript-side {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 340px;
+  width: var(--transcript-width);
 }
 .transcript-below {
   flex-grow: 1;
@@ -266,7 +276,7 @@ watch(
 }
 .player-row:fullscreen.player-row--split .player-frame,
 .player-row.plyr--fullscreen-fallback.player-row--split .player-frame {
-  width: calc(100% - 340px);
+  width: calc(100% - var(--transcript-width));
 }
 .player-row:fullscreen .player-frame .v-responsive__sizer,
 .player-row.plyr--fullscreen-fallback .player-frame .v-responsive__sizer {

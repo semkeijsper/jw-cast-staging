@@ -74,7 +74,13 @@ export default defineNuxtConfig({
     },
   },
 
-  css: ['plyr/dist/plyr.css', 'swiper/css', 'swiper/css/navigation', 'swiper/css/scrollbar'],
+  css: [
+    'plyr/dist/plyr.css',
+    'swiper/css',
+    'swiper/css/navigation',
+    'swiper/css/scrollbar',
+    '~/assets/styles/main.css',
+  ],
 
   // Self-hosted at build time; Vuetify references Roboto from its compiled CSS,
   // so declare the family explicitly instead of relying on scan detection.

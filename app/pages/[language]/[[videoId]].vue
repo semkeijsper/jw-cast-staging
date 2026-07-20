@@ -1,40 +1,36 @@
 <template>
   <v-container>
-    <v-row justify="center">
-      <v-col class="mt-3" cols="12" sm="12" xl="8">
-        <!-- Page title — zero-width space keeps layout stable while loading -->
-        <span class="text-display-medium font-weight-bold">
-          {{ languageStore.translations.hdgVideos || '\u200D' }}
-        </span>
+    <PageSection class="mt-3">
+      <!-- Page title — zero-width space keeps layout stable while loading -->
+      <span class="text-display-medium font-weight-bold">
+        {{ languageStore.translations.hdgVideos || '\u200D' }}
+      </span>
 
-        <v-row>
-          <v-col cols="12" lg="4" sm="6" xs="12">
-            <LanguageSelect
-              v-model="siteLanguage"
-              class="mt-4"
-              icon="mdi-translate"
-              :items="languageStore.languages"
-            />
-          </v-col>
-        </v-row>
+      <v-row>
+        <v-col cols="12" lg="4" sm="6" xs="12">
+          <LanguageSelect
+            v-model="siteLanguage"
+            class="mt-4"
+            icon="mdi-translate"
+            :items="languageStore.languages"
+          />
+        </v-col>
+      </v-row>
 
-        <v-divider class="mt-8" />
-      </v-col>
-    </v-row>
+      <v-divider class="mt-8" />
+    </PageSection>
 
-    <v-row v-if="loadFailed" justify="center">
-      <v-col cols="12" sm="12" xl="8">
-        <v-alert type="error" variant="tonal">
-          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-            <span>{{ languageStore.t('loadFailed') }}</span>
+    <PageSection v-if="loadFailed">
+      <v-alert type="error" variant="tonal">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <span>{{ languageStore.t('loadFailed') }}</span>
 
-            <v-btn color="error" variant="outlined" @click="initPage(language)">
-              {{ languageStore.t('retry') }}
-            </v-btn>
-          </div>
-        </v-alert>
-      </v-col>
-    </v-row>
+          <v-btn color="error" variant="outlined" @click="initPage(language)">
+            {{ languageStore.t('retry') }}
+          </v-btn>
+        </div>
+      </v-alert>
+    </PageSection>
 
     <template v-if="ready">
       <VideoCategory category-name="LatestVideos" divider grid>

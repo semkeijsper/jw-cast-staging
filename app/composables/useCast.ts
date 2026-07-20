@@ -62,9 +62,6 @@ export function useCast() {
   }
 
   function initCast() {
-    if (typeof window === 'undefined') {
-      return;
-    }
     const w = window as unknown as CastWindow;
 
     const configureCast = () => {

@@ -1,0 +1,76 @@
+@layer vuetify-core.reset {
+  * {
+    padding: 0;
+    margin: 0;
+  }
+  a:active,
+  a:hover {
+    outline-width: 0;
+  }
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: monospace;
+  }
+  pre {
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub,
+  sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  textarea {
+    resize: vertical;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    background-color: transparent;
+    border-style: none;
+  }
+  select {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+  }
+  legend {
+    display: table;
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+* {
+  scrollbar-width: thin;
+}
+
+html {
+  overflow-y: hidden;
+  /* Plain font-family declaration so @nuxt/fonts detects and self-hosts Roboto;
+     Vuetify only references it inside a var() fallback, which the scanner can't see. */
+  font-family: 'Roboto', sans-serif;
+}
+
+.v-main {
+  height: 100dvh;
+  overflow-y: auto;
+}
+
+/* Vuetify 2's dense lists also used a smaller title font;
+   Vuetify 3's compact density only reduces heights */
+.v-list--density-compact .v-list-item-title {
+  font-size: 0.8125rem;
+}

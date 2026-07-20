@@ -13,7 +13,9 @@
       />
 
       <v-btn density="comfortable" icon variant="text" @click="onCopy">
-        <v-icon>mdi-content-copy</v-icon>
+        <v-icon :color="copied ? 'success' : undefined">
+          {{ copied ? 'mdi-check' : 'mdi-content-copy' }}
+        </v-icon>
       </v-btn>
 
       <v-btn
@@ -210,8 +212,19 @@ function onClickCue(cue: SubtitleCue) {
   }
 }
 
-function onCopy() {
-  navigator.clipboard.writeText(plainText.value);
+const copied = ref(false);
+
+async function onCopy() {
+  try {
+    await navigator.clipboard.writeText(plainText.value);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  }
+  catch {
+    // Clipboard unavailable (permissions / insecure context) — nothing to show
+  }
 }
 
 // Consume Esc while a query is active so it clears the search instead of

@@ -11,7 +11,7 @@
         </template>
       </v-toolbar>
 
-      <v-card-text v-if="channel" class="pt-6 pb-4" style="font-size: 16px">
+      <v-card-text v-if="channel" class="pt-6 pb-4 text-body-1">
         {{ channel.description }}
       </v-card-text>
 
