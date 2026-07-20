@@ -75,3 +75,23 @@ Per phase (after its final sub-commit): `pnpm lint` + `nuxi typecheck` + `pnpm b
 **Browser checks** (`docs/verify/phase-4/`): Dutch search placeholder from dict ✅ (`01-nl-search.png`); dialog buttons "Transcript" + "Afspelen" (API translation winning over dict, as designed) ✅ (`02-nl-dialog.png`); English placeholder on `/en` ✅ (`03-en-search.png`).
 
 **Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
+
+---
+
+## Phase 5 — restructure to the §3 target tree
+
+**Commits:** `5410da7` (5a pure component moves), `97fb1c3` (5a pathPrefix + usage renames), `8109585` (5b pure store rename), `37839e3` (5b store split), `ea831ae` (5c type splits), `48a53f2` (5d renames + assertion removal).
+
+**Changed:**
+- Components relocated as git renames into `browse/`, `player/`, `cast/`, `search/`, `common/`; `button/` directory removed. `pathPrefix: false` set; usages renamed: `ButtonCast`→`CastButton`, `ButtonTranscript`→`TranscriptButton`, `CommonLanguageSelect`→`LanguageSelect`, `PlayerVideoDownloadMenu`→`VideoDownloadMenu`.
+- `stores/app.ts` → `stores/language.ts` (git rename) then split: `useLanguageStore` (languages, locales, translations, `t()`, whatsappChannel, prefs; persist `key: 'app'` pinned) + `useUiStore` (dialog flags, `selectedVideo`, `openVideo`). All 15 consumers rewritten.
+- Types: search API types → `types/search.ts`; Cast SDK surface → `types/cast.ts`; `WhatsAppChannel` → `types/index.ts`.
+- 5d renames: `getSiteLanguage`/`getVideoLanguage`/`getSubtitleLanguage` → `siteLanguageInfo`/`videoLanguageInfo`/`subtitleLanguageInfo`, typed `computed<Language>` (one `[0]!` inside the store), all ~15 call-site `!` assertions deleted; `transcriptDialog`/`setTranscriptDialog` → `transcriptPanel`/`setTranscriptPanel`. F-17 (explicit Plyr type import) had already landed with 3a.
+
+**Decisions:**
+- Getter naming: `…Info` suffix chosen over `siteLocale`/`siteLanguage` because the persisted fields `videoLanguage`/`subtitleLanguage` cannot be renamed, so string state keeps its names and the object getters get the suffix — one uniform pattern.
+- Store split runs `useLanguageStore()` + `useUiStore()` side by side in files needing both; no facade store kept.
+
+**Browser checks** (`docs/verify/phase-5/`): **hard invariant verified** — a pre-split `app` cookie (`{"videoLanguage":"de","subtitleLanguage":"en"}`) seeded before load restores "Duits (Deutsch)" audio + "Engels (English)" subtitles in the dialog selectors ✅ (`01-cookie-restore.png`). Phase 3 regression suite re-run: all 6 pass.
+
+**Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
