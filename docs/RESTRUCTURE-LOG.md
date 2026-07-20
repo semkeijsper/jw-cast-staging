@@ -141,3 +141,11 @@ Phases 2–7 executed autonomously; every phase gate (lint + vue-tsc typecheck +
 | 7 | `51b8572`, plus this log commit |
 
 Please run the "Manual checks remaining" list at the top of this file (Chromecast hardware, native fullscreen, visual QA).
+
+---
+
+## Post-run correction — F-14 reverted (owner feedback)
+
+**Commit:** `85d8290`.
+
+The unified toolbar recipe from Phase 6 regressed the UI: compact density cramped the search toolbar's text field, and the video dialog toolbar unintentionally turned primary. Both restored to their original styles (search: primary/default density at 64px; video dialog: colorless compact at 48px — browser-verified, `docs/verify/phase-6/03-search-toolbar-revert.png` / `04-video-toolbar-revert.png`). F-14 stands as **rejected**: the three dialogs' toolbars are intentionally different (one hosts an input, one sits over a player, one is a plain promo header). CLAUDE.md's "one toolbar recipe" line should be disregarded; correcting it next time CLAUDE.md is touched.

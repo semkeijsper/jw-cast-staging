@@ -162,7 +162,6 @@ Vuetify composables (`useDisplay`, `useTheme`) are **not** auto-imported — imp
 - Vuetify grid (`v-container`, `v-row`, `v-col`) for layout; use `<PageSection>` for the centered max-width page sections
 - Responsive breakpoints via `useDisplay()` from `'vuetify'`
 - Dark mode: detected at startup in `app.vue` and follows OS theme changes via a `matchMedia` listener
-- Dialog toolbars use one recipe: `color="primary" density="compact"`
 - Image gradient overlay: `<div class="image-overlay">` inside `<v-img>` with `background: linear-gradient(...)`
 - Video/search result cards: always use the shared `VideoCard.vue` (`src`, `title` props, `click` event) — do not duplicate card markup in consumers
 
