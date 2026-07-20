@@ -18,12 +18,12 @@ This file provides guidance for AI assistants working in this repository.
 | Framework | Vue 3 |
 | Language | TypeScript 6 (strict mode) |
 | UI Library | Vuetify 4 via `vuetify-nuxt-module` (sass variables in `app/assets/styles/settings.scss`) |
-| State | Pinia (composition store, no modules) |
+| State | Pinia (two composition stores: `language` + `ui`) |
 | Routing | Vue Router 4 via Nuxt pages/ |
 | Video player | Plyr (dynamic import, client-only) |
 | Chromecast | Google Cast Web Sender SDK (Default Media Receiver) |
 | Carousel | Swiper 12 via `swiper/vue` |
-| HTTP client | `$fetch` (Nuxt built-in, via ofetch) |
+| HTTP client | `$fetch` (Nuxt built-in, via ofetch) via typed wrappers in `utils/api.ts` |
 | Analytics | Google Analytics 4 via `nuxt-gtag` module (measurement ID in `nuxt.config.ts`; SPA page views rely on GA4 Enhanced Measurement history tracking) |
 | Package manager | pnpm (node >= 22) |
 | Linting | ESLint flat config: `eslint-config-vuetify` + `@nuxt/eslint` (stylistic rules, no Prettier) |
@@ -34,50 +34,70 @@ This file provides guidance for AI assistants working in this repository.
 pnpm install          # Install dependencies (also runs nuxt prepare)
 pnpm dev              # Start dev server with hot reload
 pnpm build            # Static SPA build into .output/public/
-pnpm lint             # Run ESLint
+pnpm lint             # Run ESLint (lint:fix to autofix)
 pnpm preview          # Preview the built output
 ```
 
-**There are no automated tests.**
+**There are no automated tests.** Browser verification is done with Playwright scripts against the dev server (see `.claude/skills/verify` and `docs/verify/`).
 
 ## Repository Structure
 
 ```
 app/
-├── app.vue                      # Root: v-app shell, app bar, global dialogs
-├── assets/styles/settings.scss  # Vuetify SASS variable overrides (styles.configFile)
+├── app.vue                          # Slim shell: app bar, <NuxtPage>, global overlays
+├── assets/styles/
+│   ├── settings.scss                # Vuetify SASS variable overrides (styles.configFile)
+│   └── main.css                     # Global reset + element styles (loaded via nuxt.config css)
 ├── pages/
-│   ├── index.vue                # Redirect / → /:browser-language
+│   ├── index.vue                    # Redirect / → /:browser-language
 │   └── [language]/
-│       └── [[videoId]].vue      # Main page: language selector + 4 category rows
-│                                # videoId is optional — opens that video on load
-├── components/
-│   ├── VideoCategory.vue        # Fetches one named category and renders it
-│   ├── VideoDialog.vue          # Full-screen video player modal (Plyr + Cast)
-│   ├── VideoCard.vue            # Shared video/result card (2:1 image, gradient overlay, wrapping title)
-│   ├── VideoSwiper.vue          # Horizontal Swiper carousel for a category
-│   ├── VideoGrid.vue            # Responsive grid (used for LatestVideos)
-│   ├── SearchDialog.vue         # Search UI with pagination
-│   ├── TranscriptPanel.vue      # Synced transcript panel in VideoDialog (search, click-to-seek)
-│   ├── GetNotifiedDialog.vue    # WhatsApp channel promo dialog
-│   ├── CastBar.vue              # Global Chromecast control bar (fixed bottom)
-│   └── button/                  # Used as <ButtonCast> etc. (directory-prefixed)
-│       ├── Cast.vue             # Chromecast (native Cast SDK)
-│       └── Transcript.vue       # Toggles the transcript panel
-├── config/
-│   └── whatsappChannels.ts      # Per-language WhatsApp channel links (not auto-imported)
+│       └── [[videoId]].vue          # Main page: language selector + 4 category rows;
+│                                    #   videoId is optional — opens that video on load
+├── components/                      # Domain directories; pathPrefix: false — usage name = filename,
+│   │                                #   so component filenames must be globally unique
+│   ├── browse/                      # Category browsing surface
+│   │   ├── VideoCategory.vue        # Fetches one named category, renders grid or swiper
+│   │   ├── VideoGrid.vue            # Responsive grid (used for LatestVideos)
+│   │   ├── VideoSwiper.vue          # Horizontal Swiper carousel
+│   │   └── VideoCard.vue            # Shared video/result card (2:1 image, gradient overlay)
+│   ├── player/                      # Everything inside the video player modal
+│   │   ├── VideoDialog.vue          # Player modal orchestrator (dialog chrome + wiring)
+│   │   ├── VideoDownloadMenu.vue    # Toolbar download menu (files, .vtt, jw.org link)
+│   │   ├── TranscriptPanel.vue      # Synced transcript panel (search, click-to-seek)
+│   │   └── TranscriptButton.vue     # Toggles the transcript panel
+│   ├── cast/                        # Chromecast domain
+│   │   ├── CastBar.vue              # Global Chromecast control bar (fixed bottom)
+│   │   └── CastButton.vue           # Cast menu button (quality picker)
+│   ├── search/
+│   │   └── SearchDialog.vue         # Search UI with pagination + link-paste parsing
+│   └── common/                      # Cross-domain building blocks
+│       ├── LanguageSelect.vue       # Shared language autocomplete (v-model, items, icon)
+│       ├── PageSection.vue          # Centered max-width section wrapper
+│       └── GetNotifiedDialog.vue    # WhatsApp channel promo dialog
+├── composables/                     # Stateful / lifecycle-bound logic
+│   ├── useCast.ts                   # Google Cast SDK wrapper (module-level shared refs)
+│   ├── usePlyrPlayer.ts             # Plyr lifecycle, race guard, position restore, control injection
+│   ├── useMediaItems.ts             # videoMedia/subtitleMedia state + language watchers
+│   └── useVideoRoute.ts             # Single owner of /:language/:videoId URL sync
+├── utils/                           # Pure functions, auto-imported
+│   ├── api.ts                       # Typed $fetch wrappers + API base URLs + downloadableFiles
+│   ├── language.ts                  # languageLabel
+│   ├── time.ts                      # formatTime (H:MM:SS)
+│   └── vtt.ts                       # parseVtt
+├── config/                          # Hand-maintained data tables (NOT auto-imported — import explicitly)
+│   ├── uiStrings.ts                 # Locale-keyed UI string dictionary (see UI Strings below)
+│   └── whatsappChannels.ts          # Per-language WhatsApp channel links
 ├── stores/
-│   └── app.ts                   # Single flat Pinia composition store
-├── composables/
-│   └── useCast.ts               # Google Cast SDK wrapper
-├── utils/
-│   └── vtt.ts                   # parseVtt / formatCueTime (auto-imported)
+│   ├── language.ts                  # useLanguageStore — languages, locales, translations, t()
+│   └── ui.ts                        # useUiStore — dialog flags, selectedVideo, openVideo()
 └── types/
-    └── index.ts                 # Domain interfaces: Language, Video, Category, etc.
+    ├── index.ts                     # Domain: Language, Video, Category, MediaFile, WhatsAppChannel, …
+    ├── search.ts                    # Search API response types
+    └── cast.ts                      # Hand-written Cast SDK surface
 public/
-├── 404.html                     # GitHub Pages SPA redirect trick
+├── 404.html                         # GitHub Pages SPA redirect trick
 ├── sitemap.xml, robots.txt, CNAME
-└── assets/                      # Favicons, PWA manifest
+└── assets/                          # Favicons, PWA manifest
 ```
 
 ## Code Conventions
@@ -95,9 +115,9 @@ All components use Vue 3 `<script setup lang="ts">` — no Options API, no Class
 import type { Video } from '~/types';
 
 const props = defineProps<{ video: Video }>();
-const store = useAppStore();
+const languageStore = useLanguageStore();
 
-const label = computed(() => store.translations.btnPlay ?? 'Play');
+const label = computed(() => languageStore.t('btnPlay'));
 
 function doSomething() { ... }
 </script>
@@ -105,25 +125,26 @@ function doSomething() { ... }
 
 ### Auto-imports
 
-Nuxt auto-imports: Vue composables (`ref`, `computed`, `watch`, `onMounted`, etc.), Nuxt composables (`useRoute`, `useRouter`, `navigateTo`, `nextTick`), composables from `composables/`, stores from `stores/`, and all components from `components/`.
+Nuxt auto-imports: Vue composables (`ref`, `computed`, `watch`, `onMounted`, etc.), Nuxt composables (`useRoute`, `useRouter`, `navigateTo`, `nextTick`), composables from `composables/`, utils from `utils/`, stores from `stores/`, and all components from `components/`.
 
-**Always** import types explicitly: `import type { Video } from '~/types'`.
+- **Components:** `pathPrefix: false` is set in `nuxt.config.ts` — a component's usage name equals its filename regardless of subdirectory (`components/cast/CastButton.vue` → `<CastButton>`). Filenames must therefore be globally unique.
+- **`config/` is not auto-imported** — import data tables explicitly so consumers are greppable.
+- **Always** import types explicitly: `import type { Video } from '~/types'` (search types from `~/types/search`, Cast SDK types from `~/types/cast`).
 
 Vuetify composables (`useDisplay`, `useTheme`) are **not** auto-imported — import them from `'vuetify'`.
 
 ### Naming Conventions
 
-- **Components:** PascalCase filenames (`VideoDialog.vue`)
+- **Components:** PascalCase filenames (`VideoDialog.vue`), globally unique
 - **Event handlers:** camelCase prefixed with `on` (`onClickVideo`, `onSelectFile`)
-- **Store actions:** `set` prefix (`setSiteLanguage`, `setVideoDialog`)
-- **Dialog state:** `dialog` computed wrapping the store boolean (get/set pattern)
+- **Store mutations:** `set` prefix (`setSiteLanguage`, `setVideoDialog`); higher-level actions are verbs (`openVideo`)
+- **Store locale state vs resolved objects:** locale strings keep plain names (`siteLanguage`, `videoLanguage`, `subtitleLanguage`); the resolved `Language`-object getters carry an `Info` suffix (`siteLanguageInfo`, …) and are typed non-null — no `!` needed at call sites
+- **Dialog state:** `dialog` computed wrapping the store boolean (get/set pattern); the transcript is a *panel*: `transcriptPanel` / `setTranscriptPanel`
 - **CSS classes:** kebab-case; Vuetify utilities (`d-flex`, `text-white`, etc.)
 
-### Vuetify 3 API Notes
+### Vuetify 4 API Notes (migrating from Vuetify 2 idioms)
 
-Key differences from Vuetify 2 used in this codebase:
-
-| Vuetify 2 | Vuetify 3 |
+| Vuetify 2 | Vuetify 3/4 |
 |---|---|
 | `dense` | `density="compact"` |
 | `outlined` | `variant="outlined"` |
@@ -137,10 +158,11 @@ Key differences from Vuetify 2 used in this codebase:
 
 ### Styling
 
-- Scoped CSS (plain, not SCSS) inside `.vue` files
-- Vuetify grid (`v-container`, `v-row`, `v-col`) for layout
+- Scoped CSS (plain, not SCSS) inside `.vue` files; global reset lives in `assets/styles/main.css`
+- Vuetify grid (`v-container`, `v-row`, `v-col`) for layout; use `<PageSection>` for the centered max-width page sections
 - Responsive breakpoints via `useDisplay()` from `'vuetify'`
-- Dark mode: detected once at startup in `app.vue` via `window.matchMedia`
+- Dark mode: detected at startup in `app.vue` and follows OS theme changes via a `matchMedia` listener
+- Dialog toolbars use one recipe: `color="primary" density="compact"`
 - Image gradient overlay: `<div class="image-overlay">` inside `<v-img>` with `background: linear-gradient(...)`
 - Video/search result cards: always use the shared `VideoCard.vue` (`src`, `title` props, `click` event) — do not duplicate card markup in consumers
 
@@ -159,74 +181,92 @@ Run `pnpm lint` (or `pnpm lint:fix`) before committing.
 
 ### TypeScript
 
-- Strict mode via Nuxt's generated `tsconfig.json`
-- All domain types in `types/index.ts`
+- Strict mode via Nuxt's generated `tsconfig.json`; `typeCheck: true` runs vue-tsc in dev and build
+- Domain types in `types/index.ts`; search API types in `types/search.ts`; Cast SDK surface in `types/cast.ts`
 - No implicit `any`; use `unknown` or proper types
 
 ## State Management (Pinia)
 
-`stores/app.ts` is a single flat composition store:
+Two flat composition stores:
 
-| State field | Purpose |
+**`stores/language.ts` — `useLanguageStore`**
+
+| Field | Purpose |
 |---|---|
-| `mediatorUrl` | Base URL for jw.org media API |
-| `searchUrl` | Base URL for jw.org search API |
-| `tokenUrl` | URL for stream JWT tokens |
 | `languages` | All available languages (seeded with Dutch + English) |
-| `siteLanguage` | Selected UI/content language locale |
-| `videoLanguage` | Selected audio language for video (persisted) |
-| `subtitleLanguage` | Selected subtitle language (persisted) |
+| `siteLanguage` | Selected UI/content locale (string) |
+| `videoLanguage` | Selected audio-language locale (persisted) |
+| `subtitleLanguage` | Selected subtitle locale (persisted) |
+| `siteLanguageInfo` / `videoLanguageInfo` / `subtitleLanguageInfo` | Resolved `Language` objects (non-null) |
 | `translations` | Fetched translation strings from jw.org API |
-| `searchDialog` | Search dialog open state |
-| `videoDialog` | Video player dialog open state |
-| `transcriptDialog` | Transcript dialog open state |
-| `getNotifiedDialog` | WhatsApp channel dialog open state |
+| `whatsappChannel` | Channel entry for the current locale |
+| `t(key)` | UI string resolution (see UI Strings) |
+
+Persistence: `pinia-plugin-persistedstate` with **`key: 'app'` pinned** (the pre-split cookie name) and `pick: ['videoLanguage', 'subtitleLanguage']`. **Do not rename the persisted fields or the cookie key** — existing visitors' saved selections depend on them. The legacy `jw_videoLanguage`/`jw_subtitleLanguage` cookies are still read once as a fallback.
+
+**`stores/ui.ts` — `useUiStore`**
+
+| Field | Purpose |
+|---|---|
+| `searchDialog` / `videoDialog` / `getNotifiedDialog` | Dialog open flags |
+| `transcriptPanel` | Transcript panel open flag |
 | `selectedVideo` | Currently focused `Video` object |
-| `subtitleMedia` | Subtitle `Video` object used by TranscriptDialog |
+| `openVideo(video)` | The single entry point for opening a video (sets `selectedVideo` + `videoDialog`) — use it for every open path |
 
-All mutations are `set*` functions. No Pinia actions for async — API calls are made directly in component `onMounted` hooks and `watch` callbacks.
+Mutations are `set*` functions. Async work stays in components/composables, calling `utils/api.ts` helpers.
 
-`videoLanguage` and `subtitleLanguage` are persisted via `pinia-plugin-persistedstate` (`persist.pick` option); the legacy `jw_videoLanguage`/`jw_subtitleLanguage` cookies are read once as a fallback for previously saved selections.
+## UI Strings
+
+`config/uiStrings.ts` holds all locally-owned shell strings, keyed by locale with an `en` block as the final fallback. `languageStore.t(key)` resolves: jw.org API translation → `uiStrings[locale]` → `uiStrings.en` → the key itself. Never hardcode user-facing strings in components — add a key to the dictionary. Translating the shell into a new language = adding one locale block.
 
 ## Routing
 
 - `pages/index.vue` — redirects to `/:browserLanguage` or `/nl`
 - `pages/[language]/[[videoId]].vue` — main page; `videoId` is optional
 
-When a video is opened (by clicking a card or from URL), the route becomes `/:language/:languageAgnosticNaturalKey`. Closing the video dialog pops back to `/:language`. This makes individual videos shareable by URL.
+When a video is opened (by clicking a card or from URL), the route becomes `/:language/:languageAgnosticNaturalKey`; closing the dialog pops back to `/:language`. This URL sync has a **single owner**: `composables/useVideoRoute.ts`, called from the page. Do not push/pop video routes anywhere else.
 
-The `VideoDialog` component manages the URL pushes in its `watch(() => store.videoDialog, ...)` handler.
-
-## Chromecast
-
-`composables/useCast.ts` wraps the Google Cast Web Sender SDK:
-
-- Uses the **Default Media Receiver** (`CC1AD845`) — no app registration required
-- Loaded via `<script>` in `nuxt.config.ts`; calls `window.__onGCastApiAvailable` when ready
-- Shared `ref` state across all component instances: `isAvailable`, `isConnecting`, and `RemotePlayer`-synced playback state (`isPaused`, `currentTime`, `duration`, volume, device name, …)
-- `castMedia(url, title, subtitleUrl?)` — casts MP4 with optional VTT subtitles (explicit sans-serif `TextTrackStyle`); reuses a running session to switch videos
-- Playback control actions (`togglePlay`, `seekTo`, `skip`, `setVolume`, `toggleMute`, `toggleCaptions`, `stopCasting`) drive `CastBar.vue`, a global control bar in `app.vue`
-
-`button/Cast.vue` is disabled when the Cast SDK is unavailable (e.g. non-Chromium browsers).
-
-## Search Pagination
-
-`SearchDialog.vue` implements full pagination using the jw.org search API's `offset` and `limit` params:
-
-- Page size: 12 results (`LIMIT` constant)
-- `v-pagination` component drives page changes; the pagination row is bottom-anchored via flex-column container + `mt-auto`
-- Sort (relevance / newest / oldest) resets to page 1
-- New search query resets to page 1 (debounced 400ms, `DEBOUNCE_MS` constant)
-- JWT token is fetched on mount and refreshed on 401 with a single bounded retry
-- Failed searches show a `v-alert` error (`hasError` ref); zero filtered results show a "no videos found" message
+The page validates unknown locales after fetching the full language list (redirect to `/en`) and shows a retry alert if the initial language/translation fetches fail.
 
 ## API Integration
 
-All HTTP calls use `$fetch` (Nuxt's built-in fetch, auto-imported) directly inside components. No service layer abstraction. Calls follow `async/await`. Key endpoints (stored as constants in the Pinia store):
+All HTTP calls go through the typed `$fetch` wrappers in **`utils/api.ts`** (`fetchLanguages`, `fetchTranslations`, `fetchCategory`, `fetchMediaItem`, `fetchSearch`, `fetchToken`), which also owns the API base URL constants. Components/composables call these helpers with `async/await`; don't inline raw endpoint URLs in components.
 
-- `mediatorUrl` — `/categories/:code/:name`, `/media-items/:code/:lank`, `/languages/:code/all`, `/translations/:code`
-- `searchUrl` — `/:code/videos?q=&sort=&offset=&limit=`
-- `tokenUrl` — returns a JWT for search requests
+Endpoints:
+
+- mediator — `/categories/:code/:name`, `/media-items/:code/:lank`, `/languages/:code/all`, `/translations/:code`
+- search — `/:code/videos?q=&sort=&offset=&limit=`
+- token — returns a JWT for search requests
+
+## Video Player
+
+`player/VideoDialog.vue` is a thin orchestrator; the moving parts live in composables:
+
+- `usePlyrPlayer(playerEl, source)` — Plyr init/destroy behind a load-id race guard, playback-position capture/restore across language switches (Plyr's `source` setter swaps the media element asynchronously — restore happens on Plyr's `ready` event), transcript-control injection into Plyr's control bar, fullscreen Escape capture. The player is destroyed on dialog close.
+- `useMediaItems(onBeforeLanguageReload)` — fetches the audio-language and subtitle-language media items, refetches on video/language changes, exposes `captionUrl`/`subtitleUrl`.
+
+## Chromecast
+
+`composables/useCast.ts` wraps the Google Cast Web Sender SDK (types in `types/cast.ts`):
+
+- Uses the **Default Media Receiver** (`CC1AD845`) — no app registration required
+- Loaded via `<script>` in `nuxt.config.ts`; calls `window.__onGCastApiAvailable` when ready
+- Shared `ref` state across all component instances: `isAvailable`, `isConnecting`, and `RemotePlayer`-synced playback state
+- `castMedia(url, title, subtitleUrl?)` — casts MP4 with optional VTT subtitles; reuses a running session to switch videos
+- Playback control actions drive `cast/CastBar.vue`, a global control bar in `app.vue`
+
+`cast/CastButton.vue` is disabled when the Cast SDK is unavailable (e.g. non-Chromium browsers).
+
+## Search
+
+`search/SearchDialog.vue`:
+
+- Page size: 9 results (`LIMIT` constant); `v-pagination` drives page changes
+- Sort (relevance / newest / oldest) and new queries reset to page 1 (debounced 400ms)
+- Stale responses are discarded via a latest-wins request id
+- JWT is fetched lazily on first dialog open and refreshed on 401 with a single bounded retry
+- Pasted jw.org finder / media-items links open the video directly; failures surface the error alert
+- Failed searches show a `v-alert`; zero filtered results show a "no videos found" message
 
 ## Deployment
 
@@ -236,7 +276,7 @@ pnpm build
 git subtree push --prefix .output/public origin gh-pages
 ```
 
-`public/404.html` handles GitHub Pages' lack of server-side routing by encoding the path into a query param, which `app.vue` restores on mount.
+`public/404.html` handles GitHub Pages' lack of server-side routing by encoding the path into a query param, which an inline head script in `nuxt.config.ts` restores before the router boots.
 
 ## Git Workflow
 
@@ -250,7 +290,9 @@ git subtree push --prefix .output/public origin gh-pages
 - **Do not use the Options API or Class Components** — `<script setup>` is the standard
 - **Do not add Vuex** — the project uses Pinia
 - **Do not add a test framework** unless explicitly requested
-- **Do not abstract API calls** into a service layer — direct `$fetch` in components is the pattern
-- **Do not downgrade to Vue 2 / Vuetify 2** — this is a Vue 3 / Vuetify 3 project
+- **Do not inline API URLs in components** — add or reuse a wrapper in `utils/api.ts`
+- **Do not hardcode user-facing strings** — use `languageStore.t(key)` + `config/uiStrings.ts`
+- **Do not rename the persisted store fields or the `'app'` persist key** (see State Management)
+- **Do not downgrade to Vue 2 / Vuetify 2** — this is a Vue 3 / Vuetify 4 project
 - **Do not add SSR** — the app is intentionally client-side only (`ssr: false`)
 - **Do not add comments** to self-explanatory code
