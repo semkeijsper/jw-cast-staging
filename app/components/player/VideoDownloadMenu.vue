@@ -7,7 +7,7 @@
     </template>
 
     <v-list density="compact">
-      <v-list-subheader>{{ store.translations.btnDownload ?? 'Download' }}</v-list-subheader>
+      <v-list-subheader>{{ store.t('btnDownload') }}</v-list-subheader>
 
       <v-list-item
         v-for="file in downloadableFiles(videoMedia)"
@@ -21,7 +21,7 @@
         :disabled="!subtitleUrl"
         :href="subtitleUrl ?? undefined"
         prepend-icon="mdi-download"
-        :title="`${store.translations.hdgSubtitles} (.vtt)`"
+        :title="`${store.t('hdgSubtitles')} (.vtt)`"
       />
 
       <v-divider class="my-1" />
@@ -31,7 +31,7 @@
         :href="jwOrgUrl ?? undefined"
         prepend-icon="mdi-open-in-new"
         target="_blank"
-        :title="store.translations.lnkHome"
+        :title="store.t('lnkHome')"
       />
     </v-list>
   </v-menu>

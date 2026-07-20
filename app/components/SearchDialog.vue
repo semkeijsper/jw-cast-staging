@@ -15,7 +15,7 @@
           clearable
           density="compact"
           hide-details
-          :placeholder="placeholder"
+          :placeholder="store.t('searchPlaceholder')"
           prepend-inner-icon="mdi-magnify"
           single-line
           variant="outlined"
@@ -38,7 +38,7 @@
           <v-row v-if="hasError" class="flex-grow-0">
             <v-col cols="12">
               <v-alert type="error" variant="tonal">
-                {{ errorMessage }}
+                {{ store.t('searchFailed') }}
               </v-alert>
             </v-col>
           </v-row>
@@ -176,28 +176,6 @@ const query = computed({
       searchQuery.value = value;
     }, DEBOUNCE_MS);
   },
-});
-
-const placeholder = computed(() => {
-  switch (store.siteLanguage) {
-    case 'nl': {
-      return 'Zoek of plak jw.org link...';
-    }
-    default: {
-      return 'Search or paste jw.org link...';
-    }
-  }
-});
-
-const errorMessage = computed(() => {
-  switch (store.siteLanguage) {
-    case 'nl': {
-      return 'Zoeken is mislukt. Probeer het later opnieuw.';
-    }
-    default: {
-      return 'Search failed. Please try again later.';
-    }
-  }
 });
 
 const searchMessage = computed(

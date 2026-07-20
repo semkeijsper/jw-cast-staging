@@ -12,14 +12,14 @@
             variant="elevated"
             v-bind="{ ...menuProps, ...tooltipProps }"
           >
-            {{ store.translations.btnPlay }}
+            {{ store.t('btnPlay') }}
           </v-btn>
         </template>
       </v-tooltip>
     </template>
 
     <v-list v-if="videoMedia" density="compact">
-      <v-list-subheader>Chromecast</v-list-subheader>
+      <v-list-subheader>{{ store.t('chromecast') }}</v-list-subheader>
 
       <v-list-item
         v-for="file in downloadableFiles(videoMedia)"
@@ -46,8 +46,8 @@ const { isAvailable: castAvailable, castMedia } = useCast();
 
 const tooltipText = computed(() =>
   props.subtitleUrl
-    ? store.translations.btnPlayWithSubtitles
-    : store.translations.btnPlayWithoutSubtitles,
+    ? store.t('btnPlayWithSubtitles')
+    : store.t('btnPlayWithoutSubtitles'),
 );
 
 async function onSelectFile(file: MediaFile) {

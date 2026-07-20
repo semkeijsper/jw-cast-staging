@@ -26,10 +26,10 @@
       <v-col cols="12" sm="12" xl="8">
         <v-alert type="error" variant="tonal">
           <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-            <span>{{ loadErrorMessage }}</span>
+            <span>{{ store.t('loadFailed') }}</span>
 
             <v-btn color="error" variant="outlined" @click="initPage(language)">
-              {{ retryLabel }}
+              {{ store.t('retry') }}
             </v-btn>
           </div>
         </v-alert>
@@ -70,28 +70,6 @@ const { xs } = useDisplay();
 
 const ready = ref(false);
 const loadFailed = ref(false);
-
-const loadErrorMessage = computed(() => {
-  switch (store.siteLanguage) {
-    case 'nl': {
-      return 'Laden is mislukt. Probeer het later opnieuw.';
-    }
-    default: {
-      return 'Loading failed. Please try again later.';
-    }
-  }
-});
-
-const retryLabel = computed(() => {
-  switch (store.siteLanguage) {
-    case 'nl': {
-      return 'Opnieuw proberen';
-    }
-    default: {
-      return 'Retry';
-    }
-  }
-});
 
 const language = computed(() => route.params.language as string);
 const videoId = computed(() => route.params.videoId as string | undefined);

@@ -8,7 +8,7 @@
     :variant="store.transcriptDialog ? 'outlined' : 'elevated'"
     @click="store.setTranscriptDialog(!store.transcriptDialog)"
   >
-    Transcript
+    {{ store.t('transcript') }}
   </v-btn>
 </template>
 

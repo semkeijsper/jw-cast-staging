@@ -11,7 +11,7 @@
             variant="text"
             @click="store.setSearchDialog(true)"
           >
-            {{ store.translations.lnkSearch }}
+            {{ store.t('lnkSearch') }}
           </v-btn>
 
           <v-btn v-else icon @click="store.setSearchDialog(true)">
@@ -44,6 +44,7 @@
 
 <script setup lang="ts">
 import { useDisplay, useTheme } from 'vuetify';
+import { uiStrings } from '~/config/uiStrings';
 
 const store = useAppStore();
 const { xs } = useDisplay();
@@ -55,19 +56,11 @@ onMounted(() => {
   initCast();
 });
 
-const guideButtonText = computed(() => {
-  switch (store.siteLanguage) {
-    case 'nl': {
-      return 'Handleiding';
-    }
-    case 'en': {
-      return 'Guide';
-    }
-    default: {
-      return store.translations.lnkHelpView ?? 'Guide';
-    }
-  }
-});
+// Local dict first for nl/en (jw.org's lnkHelpView is a different phrase),
+// API translation for other locales, English as the last resort
+const guideButtonText = computed(
+  () => uiStrings[store.siteLanguage]?.guide ?? store.translations.lnkHelpView ?? uiStrings.en!.guide!,
+);
 </script>
 
 <style>

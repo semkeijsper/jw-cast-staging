@@ -6,7 +6,7 @@
         clearable
         density="compact"
         hide-details
-        :placeholder="store.translations.lnkSearch ?? 'Search'"
+        :placeholder="store.t('lnkSearch')"
         prepend-inner-icon="mdi-magnify"
         variant="outlined"
         @keydown.esc="onEscape"
@@ -35,7 +35,7 @@
       v-else-if="cues.length === 0"
       class="d-flex flex-grow-1 align-center justify-center pa-4 text-medium-emphasis"
     >
-      No transcript available
+      {{ store.t('noTranscript') }}
     </div>
 
     <div v-else class="cue-area flex-grow-1">
@@ -50,7 +50,7 @@
         v-if="isFiltering && filteredCues.length === 0"
         class="d-flex flex-grow-1 align-center justify-center pa-4 text-medium-emphasis"
       >
-        No results
+        {{ store.t('noResults') }}
       </div>
 
       <div

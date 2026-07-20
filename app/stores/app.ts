@@ -1,4 +1,5 @@
 import type { Language, Translations, Video } from '~/types';
+import { uiStrings } from '~/config/uiStrings';
 import { whatsappChannels } from '~/config/whatsappChannels';
 
 export const useAppStore = defineStore('app', () => {
@@ -43,6 +44,14 @@ export const useAppStore = defineStore('app', () => {
   );
 
   const whatsappChannel = computed(() => whatsappChannels[siteLanguage.value]);
+
+  // UI string resolution: jw.org API translation → local dict → English
+  function t(key: string): string {
+    return translations.value[key]
+      ?? uiStrings[siteLanguage.value]?.[key]
+      ?? uiStrings.en![key]
+      ?? key;
+  }
 
   function findLanguageByCode(code: string | undefined) {
     return languages.value.find(l => l.code === code);
@@ -106,6 +115,7 @@ export const useAppStore = defineStore('app', () => {
     getVideoLanguage,
     getSubtitleLanguage,
     whatsappChannel,
+    t,
     findLanguageByCode,
     findLanguageByLocale,
     setLanguages,
