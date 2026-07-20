@@ -57,3 +57,21 @@ Per phase (after its final sub-commit): `pnpm lint` + `nuxi typecheck` + `pnpm b
 **Browser checks** (`docs/verify/phase-3/`): open updates URL ✅ (`01-open.png`); close pops URL + dialog ✅ (`02-closed.png`); reopen re-initializes player ✅ (`03-reopen.png`); browser back closes dialog ✅ (`04-back.png`); transcript panel opens with 759 cues ✅ (`05-transcript.png`); transcript toggles off ✅. Phase 1 regression re-run post-refactor: all 3 still pass (position 30s→32.7s).
 
 **Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
+
+## Phase 4 — UI strings
+
+**Commits:** `e629ecc`.
+
+**Changed:**
+- New `config/uiStrings.ts` — locale-keyed dictionary (en + nl) for all locally-owned shell strings, including fallbacks for the API keys used bare before (`btnDownload`, `hdgSubtitles`, `lnkHome`, `btnPlay`, tooltips).
+- Store `t(key)` resolves API translation → `uiStrings[locale]` → `uiStrings.en` → key.
+- Replaced: nl/en switches in `app.vue` (guide label) and `SearchDialog` (placeholder, error), Phase-1 strings in the page (loadFailed/retry), English-only literals in `TranscriptPanel` ("No transcript available", "No results"), `ButtonTranscript` ("Transcript"), `ButtonCast` ("Chromecast", play labels), `VideoDownloadMenu` bare `translations.*` reads.
+
+**Decisions:**
+- Dictionary over `@nuxtjs/i18n`, per audit F-20 and owner answer: the jw.org API is already the primary runtime translation source; a module would govern ~10 shell strings and duplicate the `/:language` routing. A future locale = one new block in `uiStrings.ts`.
+- Guide button keeps dict-first resolution for nl/en (jw.org's `lnkHelpView` is a different phrase), API for other locales — same behavior as the old switch.
+- App-bar search button keeps its `v-if="store.translations.lnkSearch"` guard so nothing flashes in English before translations load (behavior identical).
+
+**Browser checks** (`docs/verify/phase-4/`): Dutch search placeholder from dict ✅ (`01-nl-search.png`); dialog buttons "Transcript" + "Afspelen" (API translation winning over dict, as designed) ✅ (`02-nl-dialog.png`); English placeholder on `/en` ✅ (`03-en-search.png`).
+
+**Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
