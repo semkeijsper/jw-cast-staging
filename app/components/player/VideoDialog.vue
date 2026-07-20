@@ -12,7 +12,7 @@
         </v-toolbar-title>
 
         <template #append>
-          <PlayerVideoDownloadMenu :subtitle-url="subtitleUrl" :video-media="videoMedia" />
+          <VideoDownloadMenu :subtitle-url="subtitleUrl" :video-media="videoMedia" />
 
           <v-btn icon @click="dialog = false">
             <v-icon>mdi-close</v-icon>
@@ -68,7 +68,7 @@
         <v-container class="pa-3">
           <v-row :no-gutters="xs">
             <v-col cols="12" sm="6">
-              <CommonLanguageSelect
+              <LanguageSelect
                 v-model="videoLanguage"
                 class="mt-4"
                 icon="mdi-volume-high"
@@ -77,7 +77,7 @@
             </v-col>
 
             <v-col cols="12" sm="6">
-              <CommonLanguageSelect
+              <LanguageSelect
                 v-model="subtitleLanguage"
                 class="mt-4"
                 icon="mdi-subtitles"
@@ -88,9 +88,9 @@
         </v-container>
 
         <v-card-actions>
-          <ButtonCast :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" :video-media="videoMedia" />
+          <CastButton :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" :video-media="videoMedia" />
           <v-spacer />
-          <ButtonTranscript :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
+          <TranscriptButton :subtitle-media="subtitleMedia" :subtitle-url="subtitleUrl" />
         </v-card-actions>
       </v-card-text>
     </v-card>

@@ -20,6 +20,10 @@ export default defineNuxtConfig({
 
   devtools: { enabled: true },
 
+  // Component names = filenames (no path prefixes); filenames must be
+  // globally unique across component directories
+  components: [{ path: '~/components', pathPrefix: false }],
+
   app: {
     // GitHub Pages SPA: handle history-mode routing via 404.html redirect
     head: {

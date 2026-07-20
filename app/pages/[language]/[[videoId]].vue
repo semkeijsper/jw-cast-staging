@@ -9,7 +9,7 @@
 
         <v-row>
           <v-col cols="12" lg="4" sm="6" xs="12">
-            <CommonLanguageSelect
+            <LanguageSelect
               v-model="siteLanguage"
               class="mt-4"
               icon="mdi-translate"
