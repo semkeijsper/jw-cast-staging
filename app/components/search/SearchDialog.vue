@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import type { SearchResponse, SearchResult } from '~/types';
+import type { SearchResponse, SearchResult } from '~/types/search';
 import { FetchError } from 'ofetch';
 import { useDisplay } from 'vuetify';
 

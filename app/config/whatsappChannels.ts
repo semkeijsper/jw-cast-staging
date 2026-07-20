@@ -1,9 +1,4 @@
-export interface WhatsAppChannel {
-  link: string;
-  ctaLabel: string;
-  description: string;
-  buttonLabel: string;
-}
+import type { WhatsAppChannel } from '~/types';
 
 export const whatsappChannels: Record<string, WhatsAppChannel> = {
   nl: {

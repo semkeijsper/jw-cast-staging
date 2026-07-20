@@ -1,4 +1,5 @@
-import type { Category, Language, MediaFile, SearchResponse, Translations, Video } from '~/types';
+import type { Category, Language, MediaFile, Translations, Video } from '~/types';
+import type { SearchResponse } from '~/types/search';
 
 export const MEDIATOR_URL = 'https://b.jw-cdn.org/apis/mediator/v1';
 export const SEARCH_URL = 'https://b.jw-cdn.org/apis/search/results';
