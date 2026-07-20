@@ -95,3 +95,19 @@ Per phase (after its final sub-commit): `pnpm lint` + `nuxi typecheck` + `pnpm b
 **Browser checks** (`docs/verify/phase-5/`): **hard invariant verified** — a pre-split `app` cookie (`{"videoLanguage":"de","subtitleLanguage":"en"}`) seeded before load restores "Duits (Deutsch)" audio + "Engels (English)" subtitles in the dialog selectors ✅ (`01-cookie-restore.png`). Phase 3 regression suite re-run: all 6 pass.
 
 **Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
+
+---
+
+## Phase 6 — cosmetic and Vuetify polish
+
+**Commits:** `3a97e43`.
+
+**Changed:** F-10 (reset → `assets/styles/main.css`, dead `@layer` block deleted, loaded via `nuxt.config` css array), F-14 (all three dialog toolbars now `color="primary" density="compact"` — VideoDialog's toolbar gains the primary color, a visible change), F-16 (dropped redundant `xl="4"`/`sm="12"` grid props), F-21 (debounce handle is a plain `let`), F-22 (JWT fetched on first search open), F-23 (dead SSR guards removed), F-24 (OS theme `change` listener), F-25 (inline styles → classes; transcript width via `--transcript-width`), F-26 (`PageSection.vue` wraps the centered `cols=12 xl=8` layout in the page and VideoCategory), F-33 (`URLSearchParams` sort-key parse), F-34 (copy button check-icon feedback + explicit catch), F-35 (Plyr `destroy()` on dialog close instead of `stop()`).
+
+**Decisions:**
+- CastBar `z-index: 10000` kept as-is: Vuetify 4 exposes no overlay z-index CSS variable to reference; the explanatory comment stays (F-25 sub-item, deliberately not changed).
+- Dialog `max-width` literals (1240/900/1100/480) left in place — F-25 lists them but prescribes no token; inventing one adds indirection for four one-off values.
+
+**Browser checks** (`docs/verify/phase-6/`): OS theme flip light→dark updates `v-theme--dark` live ✅ (`01-dark-theme.png`); transcript copy shows check feedback ✅ (`02-copy-feedback.png`). Regressions: phase-1 suite (3/3, position preserved) and phase-3 suite (6/6 — including reopen-after-close, which now exercises the new `destroy()` path) all pass.
+
+**Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
