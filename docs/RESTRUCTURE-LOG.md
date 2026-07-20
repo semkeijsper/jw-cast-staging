@@ -111,3 +111,33 @@ Per phase (after its final sub-commit): `pnpm lint` + `nuxi typecheck` + `pnpm b
 **Browser checks** (`docs/verify/phase-6/`): OS theme flip light→dark updates `v-theme--dark` live ✅ (`01-dark-theme.png`); transcript copy shows check feedback ✅ (`02-copy-feedback.png`). Regressions: phase-1 suite (3/3, position preserved) and phase-3 suite (6/6 — including reopen-after-close, which now exercises the new `destroy()` path) all pass.
 
 **Gate:** lint ✅ · typecheck ✅ · build ✅ · browser ✅
+
+---
+
+## Phase 7 — documentation sync
+
+**Commits:** `51b8572`.
+
+**Changed:** CLAUDE.md fully synced with the restructured codebase — target tree replaces the old structure section; two-store layout documented with the pinned `'app'` persist key called out as untouchable; `pathPrefix: false` naming rule; `utils/api.ts` wrapper convention (service-layer prohibition removed, per owner); `uiStrings`/`t()` convention; player composables and `useVideoRoute` ownership; search `LIMIT` corrected to 9; JWT documented as lazy; "Vuetify 3 API Notes" heading now "Vuetify 4". Fixes audit divergences D-1…D-5.
+
+**Gate:** lint ✅ · typecheck ✅ · build ✅ (docs-only phase; browser suites last ran green after Phase 6)
+
+---
+
+## Final summary — all phases complete
+
+Phases 2–7 executed autonomously; every phase gate (lint + vue-tsc typecheck + production build + Playwright browser checks) passed. Both hard invariants held: persisted fields `videoLanguage`/`subtitleLanguage` and the `'app'` cookie key are unchanged and cookie restore is browser-verified; no renames beyond those the audit specifies. Nothing was added to "Newly found / deferred" — the only mid-run discoveries were two defects in Phase 1's own fixes (F-27/F-28 scope), fixed and logged under Phase 2.
+
+**Complete commit list (oldest first):**
+
+| Phase | Commits |
+|---|---|
+| 1 (prior session) | `082cae5` |
+| 2 | `6429900`, `d5fccff`, `ec209be`, `270e449` (log) |
+| 3 | `c7cb9ef` (3a), `0a3141f` (3b), `5f03faa` (3c), `d344bbc` (3d), `41035b4` (log) |
+| 4 | `e629ecc`, `bfbe521` (log) |
+| 5 | `5410da7` (5a moves), `97fb1c3` (5a fixes), `8109585` (5b move), `37839e3` (5b split), `ea831ae` (5c), `48a53f2` (5d), `0a5746e` (log) |
+| 6 | `3a97e43`, `82c3c55` (log) |
+| 7 | `51b8572`, plus this log commit |
+
+Please run the "Manual checks remaining" list at the top of this file (Chromecast hardware, native fullscreen, visual QA).
