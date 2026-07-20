@@ -35,7 +35,10 @@
       <template v-else>
         <div class="player-row" :class="{ 'player-row--split': uiStore.transcriptPanel && !smAndDown }">
           <v-responsive :aspect-ratio="16 / 9" class="player-frame">
+            <!-- Exclusive playback: while casting, the local player is torn
+                 down and replaced by a placeholder; CastBar has the controls -->
             <video
+              v-if="!castActive"
               ref="playerEl"
               class="player-video"
               controls
@@ -43,6 +46,23 @@
               playsinline
               :poster="videoPoster"
             />
+
+            <v-img
+              v-else
+              class="cast-placeholder"
+              cover
+              height="100%"
+              :src="videoPoster"
+            >
+              <div class="cast-placeholder-overlay d-flex flex-column align-center justify-center">
+                <v-progress-circular v-if="isConnecting" color="white" indeterminate size="48" />
+
+                <template v-else>
+                  <v-icon color="white" size="56">mdi-cast-connected</v-icon>
+                  <span v-if="castDeviceName" class="mt-2 text-body-1 text-white">{{ castDeviceName }}</span>
+                </template>
+              </div>
+            </v-img>
           </v-responsive>
 
           <TranscriptPanel
@@ -109,7 +129,14 @@ import { useDisplay } from 'vuetify';
 const languageStore = useLanguageStore();
 const uiStore = useUiStore();
 const { xs, smAndDown } = useDisplay();
-const { isCastConnected, isMediaLoaded, isConnecting, currentTime: castTime, seekTo: castSeekTo } = useCast();
+const {
+  isCastConnected,
+  isMediaLoaded,
+  isConnecting,
+  castDeviceName,
+  currentTime: castTime,
+  seekTo: castSeekTo,
+} = useCast();
 
 const playerEl = ref<HTMLVideoElement | null>(null);
 
@@ -117,6 +144,9 @@ const { loading, videoMedia, subtitleMedia, captionUrl, subtitleUrl }
   = useMediaItems(() => captureResume());
 
 const isCasting = computed(() => isCastConnected.value && isMediaLoaded.value);
+// Exclusive playback: from the moment a cast session starts connecting until
+// it ends, the cast owns playback and the local player does not exist
+const castActive = computed(() => isConnecting.value || isCasting.value);
 const transcriptTime = computed(() => (isCasting.value ? castTime.value : localTime.value));
 
 function onSeekTranscript(seconds: number) {
@@ -170,23 +200,33 @@ const {
   localTime,
   loadPlayer,
   captureResume,
+  markResume,
   resetResume,
   seekTo: playerSeekTo,
-  pause: pausePlayer,
   destroy: destroyPlayer,
 } = usePlyrPlayer(playerEl, { videoMedia, captionUrl, subtitleUrl, poster: videoPoster });
 
-// Casting takes over playback: pause the local player as soon as a cast
-// session starts connecting so audio doesn't double up under the cast (and
-// the transcript switches to the cast position once its media loads)
-watch(
-  () => isConnecting.value || isCasting.value,
-  active => {
-    if (active) {
-      pausePlayer();
-    }
-  },
-);
+// Track the cast position so local playback can resume there when it ends
+let lastCastTime = 0;
+watch(castTime, time => {
+  if (isCasting.value && time > 0) {
+    lastCastTime = time;
+  }
+});
+
+// Exclusive playback: destroy the local player when casting takes over
+// (the <video> is v-if'd out); rebuild it at the cast position when the
+// cast ends while the dialog is still open
+watch(castActive, active => {
+  if (active) {
+    destroyPlayer();
+  }
+  else if (uiStore.videoDialog) {
+    markResume(lastCastTime);
+    lastCastTime = 0;
+    nextTick(() => loadPlayer());
+  }
+});
 
 // Re-init player once media is loaded
 watch(loading, async isLoading => {
@@ -235,6 +275,13 @@ watch(
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.cast-placeholder {
+  height: 100%;
+}
+.cast-placeholder-overlay {
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55);
 }
 /* v-responsive defaults to flex: 1 0 auto; inside the fullscreen dialog's
    flex-column card it grows past its 16:9 sizer on tall mobile viewports,

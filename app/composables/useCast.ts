@@ -30,6 +30,8 @@ const isConnecting = ref(false);
 
 let remotePlayer: RemotePlayer | null = null;
 let remotePlayerController: RemotePlayerController | null = null;
+// Start position for the media currently being loaded (local → cast handoff)
+let pendingStartTime = 0;
 
 export function useCast() {
   function syncRemotePlayer() {
@@ -58,6 +60,15 @@ export function useCast() {
     }
     if (mediaJustLoaded) {
       isConnecting.value = false;
+      // Handoff from local playback: LoadRequest.currentTime is ignored by
+      // some receivers, so seek explicitly once the media has landed
+      if (pendingStartTime > 0) {
+        if (Math.abs(remotePlayer.currentTime - pendingStartTime) > 2) {
+          remotePlayer.currentTime = pendingStartTime;
+          remotePlayerController?.seek();
+        }
+        pendingStartTime = 0;
+      }
     }
   }
 
@@ -134,6 +145,7 @@ export function useCast() {
       return false;
     }
     castTitle.value = title;
+    pendingStartTime = startTime ?? 0;
     try {
       const w = window as unknown as CastWindow;
       const context = w.cast!.framework.CastContext.getInstance();
@@ -190,6 +202,7 @@ export function useCast() {
     }
     catch {
       isConnecting.value = false;
+      pendingStartTime = 0;
       return false;
     }
   }

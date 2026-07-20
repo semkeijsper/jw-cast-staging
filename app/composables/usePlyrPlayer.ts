@@ -166,6 +166,11 @@ export function usePlyrPlayer(
     resumeTime = player?.currentTime ?? localTime.value;
   }
 
+  // Explicit position for the next loadPlayer (e.g. resuming after a cast)
+  function markResume(seconds: number) {
+    resumeTime = seconds;
+  }
+
   function resetResume() {
     resumeTime = 0;
   }
@@ -176,10 +181,6 @@ export function usePlyrPlayer(
     }
   }
 
-  function pause() {
-    player?.pause();
-  }
-
   // Full teardown on dialog close — cheaper than keeping a live instance
   // (and its buffers) around; reopening runs loadPlayer from scratch
   function destroy() {
@@ -187,5 +188,5 @@ export function usePlyrPlayer(
     player = undefined;
   }
 
-  return { localTime, loadPlayer, captureResume, resetResume, seekTo, pause, destroy };
+  return { localTime, loadPlayer, captureResume, markResume, resetResume, seekTo, destroy };
 }
