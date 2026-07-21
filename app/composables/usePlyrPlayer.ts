@@ -87,9 +87,7 @@ export function usePlyrPlayer(
       return;
     }
     if (e.matches) {
-      if (player.playing) {
-        player.fullscreen.enter();
-      }
+      player.fullscreen.enter();
     }
     else {
       player.fullscreen.exit();
