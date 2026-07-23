@@ -8,6 +8,7 @@
   >
     <v-card>
       <v-toolbar class="flex-grow-0" color="primary">
+        <!-- Search input -->
         <v-text-field
           v-model="query"
           autofocus
@@ -28,112 +29,108 @@
         </template>
       </v-toolbar>
 
-      <v-card-text :class="[xs ? 'px-0' : 'px-3', smAndDown ? 'pt-3 pb-0' : 'py-3']">
-        <v-container
-          class="search-container d-flex flex-column pa-3"
-          :class="{ 'pb-0': smAndDown }"
-          fluid
-        >
-          <!-- Search error -->
-          <v-row v-if="hasError" class="flex-grow-0">
-            <v-col cols="12">
-              <v-alert type="error" variant="tonal">
-                {{ languageStore.t('searchFailed') }}
-              </v-alert>
-            </v-col>
-          </v-row>
+      <v-container
+        class="search-container d-flex flex-column"
+      >
+        <!-- Search error -->
+        <v-row v-if="hasError" class="flex-grow-0">
+          <v-col cols="12">
+            <v-alert type="error" variant="tonal">
+              {{ languageStore.t('searchFailed') }}
+            </v-alert>
+          </v-col>
+        </v-row>
 
-          <!-- Result info + sort -->
-          <v-row v-else-if="response" class="flex-grow-0">
-            <v-col cols="12" lg="8" sm="6">
-              <span class="text-title-small">{{ searchMessage }}</span>
+        <!-- Result info + sort -->
+        <v-row v-else-if="response" class="flex-grow-0">
+          <v-col cols="12" lg="8" sm="6">
+            <span class="text-body-medium text-medium-emphasis">{{ searchMessage }}</span>
 
-              <div
-                v-if="response.messages[1]"
-                class="mt-1 text-title-small search-message"
-                v-html="response.messages[1].message"
-              />
-            </v-col>
-
-            <v-col v-if="response.sorts.length > 0" cols="12" lg="4" sm="6">
-              <v-select
-                v-model="sort"
-                density="compact"
-                hide-details
-                item-title="label"
-                item-value="key"
-                :items="sortItems"
-                :list-props="{ density: 'compact' }"
-                prepend-icon="mdi-sort"
-                variant="outlined"
-              />
-            </v-col>
-          </v-row>
-
-          <!-- Skeleton while loading -->
-          <v-row v-else>
-            <v-col cols="12" lg="4" sm="6">
-              <v-skeleton-loader boilerplate :loading="isLoading" type="text" />
-            </v-col>
-          </v-row>
-
-          <!-- Results grid -->
-          <v-row v-if="response && !hasError" class="flex-grow-0">
-            <v-col
-              v-for="result in response.results"
-              :key="result.lank"
-              cols="12"
-              lg="4"
-              sm="6"
-            >
-              <VideoCard
-                :src="result.image.url"
-                :title="result.title"
-                @click="onClickResult(result)"
-              />
-            </v-col>
-
-            <v-col
-              v-for="i in placeholderCount"
-              :key="`placeholder-${i}`"
-              aria-hidden="true"
-              cols="12"
-              lg="4"
-              sm="6"
-            >
-              <div class="card-placeholder" />
-            </v-col>
-          </v-row>
-
-          <!-- Skeleton grid while loading -->
-          <v-row v-else-if="!hasError" class="flex-grow-0">
-            <v-col
-              v-for="i in skeletonCount"
-              :key="i"
-              cols="12"
-              lg="4"
-              sm="6"
-            >
-              <v-skeleton-loader boilerplate class="skeleton-card" :loading="isLoading" type="image" />
-            </v-col>
-          </v-row>
-
-          <!-- Pagination -->
-          <v-row
-            v-if="totalPages > 1 && !hasError"
-            class="mt-auto pt-6 pb-2 flex-grow-0"
-            :class="{ 'pagination-sticky': smAndDown }"
-            justify="center"
-          >
-            <v-pagination
-              v-model="currentPage"
-              density="comfortable"
-              :length="totalPages"
-              :total-visible="xs ? 4 : 7"
+            <div
+              v-if="response.messages[1]"
+              class="mt-1 text-body-medium text-medium-emphasis search-message"
+              v-html="response.messages[1].message"
             />
-          </v-row>
-        </v-container>
-      </v-card-text>
+          </v-col>
+
+          <v-col v-if="response.sorts.length > 0" cols="12" lg="4" sm="6">
+            <v-select
+              v-model="sort"
+              density="compact"
+              hide-details
+              item-title="label"
+              item-value="key"
+              :items="sortItems"
+              :list-props="{ density: 'compact' }"
+              prepend-icon="mdi-sort"
+              variant="outlined"
+            />
+          </v-col>
+        </v-row>
+
+        <!-- Skeleton while loading -->
+        <v-row v-else>
+          <v-col cols="12" lg="4" sm="6">
+            <v-skeleton-loader boilerplate :loading="isLoading" type="text" />
+          </v-col>
+        </v-row>
+
+        <!-- Results grid -->
+        <v-row v-if="response && !hasError" class="flex-grow-0" :density="smAndDown? 'comfortable' : 'default'">
+          <v-col
+            v-for="result in response.results"
+            :key="result.lank"
+            cols="12"
+            lg="4"
+            sm="6"
+          >
+            <VideoCard
+              :src="result.image.url"
+              :title="result.title"
+              @click="onClickResult(result)"
+            />
+          </v-col>
+
+          <v-col
+            v-for="i in placeholderCount"
+            :key="`placeholder-${i}`"
+            aria-hidden="true"
+            cols="12"
+            lg="4"
+            sm="6"
+          >
+            <div class="card-placeholder" />
+          </v-col>
+        </v-row>
+
+        <!-- Skeleton grid while loading -->
+        <v-row v-else-if="!hasError" class="flex-grow-0 pb-6">
+          <v-col
+            v-for="i in skeletonCount"
+            :key="i"
+            cols="12"
+            lg="4"
+            sm="6"
+          >
+            <v-skeleton-loader boilerplate class="skeleton-card" :loading="isLoading" type="image" />
+          </v-col>
+        </v-row>
+
+        <!-- Pagination -->
+        <v-row
+          v-if="totalPages > 1 && !hasError"
+          class="mt-auto pt-2 pb-2 flex-grow-0"
+          :class="{ 'pagination-sticky': smAndDown }"
+          justify="center"
+        >
+          <v-pagination
+            v-model="currentPage"
+            density="comfortable"
+            :length="totalPages"
+            :total-visible="xs ? 4 : 7"
+          />
+        </v-row>
+      </v-container>
     </v-card>
   </v-dialog>
 </template>

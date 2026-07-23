@@ -10,3 +10,6 @@ onlyBuiltDependencies:
   - unrs-resolver
 patchedDependencies:
   plyr: patches/plyr.patch
+overrides:
+  vite-plugin-checker: 0.14.5
+  glob: 13.0.6

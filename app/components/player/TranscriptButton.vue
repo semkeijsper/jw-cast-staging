@@ -1,7 +1,7 @@
 <template>
   <v-btn
     class="ml-2"
-    color="primary"
+    :color="subtitleUrl ? 'primary' : undefined"
     :disabled="subtitleUrl === null"
     :loading="!subtitleMedia"
     :prepend-icon="uiStore.transcriptPanel ? 'mdi-arrow-left' : 'mdi-script-text-outline'"

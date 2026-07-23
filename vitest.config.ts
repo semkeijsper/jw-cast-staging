@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { defineVitestProject } from '@nuxt/test-utils/config';
 import { defineConfig } from 'vitest/config';
 
-const appDir = fileURLToPath(new URL('./app', import.meta.url));
+const appDir = fileURLToPath(new URL('app', import.meta.url));
 
 export default defineConfig({
   test: {

@@ -1,9 +1,6 @@
 <template>
   <Swiper
-    :breakpoints="{
-      600: { slidesPerView: 2, slidesPerGroup: 2 },
-      1264: { slidesPerView: 3, slidesPerGroup: 3, scrollbar: { hide: true } },
-    }"
+    :breakpoints="breakpoints"
     :free-mode="true"
     :modules="modules"
     :navigation="mdAndUp"
@@ -23,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+import type { SwiperOptions } from 'swiper/types';
 import type { Video } from '~/types';
 import { FreeMode, Navigation, Scrollbar } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/vue';
@@ -34,4 +32,16 @@ const uiStore = useUiStore();
 const { mdAndUp } = useDisplay();
 
 const modules = [Navigation, Scrollbar, FreeMode];
+
+const breakpoints: Record<number, SwiperOptions> = {
+  600: { slidesPerView: 2, slidesPerGroup: 2 },
+  1264: { slidesPerView: 3, slidesPerGroup: 3, scrollbar: { hide: true } },
+};
 </script>
+
+<style scoped>
+.swiper {
+  --swiper-scrollbar-bg-color: rgba(var(--v-theme-on-surface), 0.1);
+  --swiper-scrollbar-drag-bg-color: rgba(var(--v-theme-on-surface), 0.5);
+}
+</style>
