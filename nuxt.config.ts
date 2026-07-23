@@ -20,8 +20,6 @@ export default defineNuxtConfig({
 
   devtools: { enabled: true },
 
-  // Component names = filenames (no path prefixes); filenames must be
-  // globally unique across component directories
   components: [{ path: '~/components', pathPrefix: false }],
 
   app: {
@@ -82,8 +80,6 @@ export default defineNuxtConfig({
     '~/assets/styles/main.css',
   ],
 
-  // Self-hosted at build time; Vuetify references Roboto from its compiled CSS,
-  // so declare the family explicitly instead of relying on scan detection.
   fonts: {
     families: [{ name: 'Roboto', weights: [100, 300, 400, 500, 700, 900] }],
   },
@@ -133,5 +129,15 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: true,
+  },
+
+  vite: {
+    optimizeDeps: {
+      include: [
+        'plyr',
+        'swiper/modules',
+        'swiper/vue',
+      ],
+    },
   },
 });

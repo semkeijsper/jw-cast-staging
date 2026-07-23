@@ -87,9 +87,14 @@ export function usePlyrPlayer(
       return;
     }
     if (e.matches) {
-      player.fullscreen.enter();
+      // requestFullscreen needs transient user activation; without it the
+      // browser rejects anyway, so skip instead of throwing (e.g. rotating
+      // long after the last tap, or the devtools rotate button)
+      if (navigator.userActivation?.isActive) {
+        player.fullscreen.enter();
+      }
     }
-    else {
+    else if (player.fullscreen.active) {
       player.fullscreen.exit();
     }
   }

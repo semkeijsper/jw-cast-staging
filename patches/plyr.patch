@@ -1,0 +1,11 @@
+diff --git a/package.json b/package.json
+index e820626e76818c5e01edf71b4ed322761706e11c..124dcf154e93e79e577907de18a2c02905db88d5 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,5 @@
+ {
+   "name": "plyr",
+-  "type": "module",
+   "version": "3.8.4",
+   "description": "A simple, accessible and customizable HTML5, YouTube and Vimeo media player",
+   "author": "Sam Potts <sam@potts.es>",

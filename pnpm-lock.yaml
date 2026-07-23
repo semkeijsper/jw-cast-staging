@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  plyr: 22161fe86d8e633a9bda1673f69eed447371d8c5fe1589ed24d17888bcb65d09
+
 importers:
 
   .:
@@ -25,7 +28,7 @@ importers:
         version: 4.7.1(@nuxt/kit@4.4.2(magicast@0.5.2))(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@3.0.4(typescript@6.0.2)(vue@3.5.40(typescript@6.0.2))))(pinia@3.0.4(typescript@6.0.2)(vue@3.5.40(typescript@6.0.2)))
       plyr:
         specifier: ^3.8.4
-        version: 3.8.4
+        version: 3.8.4(patch_hash=22161fe86d8e633a9bda1673f69eed447371d8c5fe1589ed24d17888bcb65d09)
       swiper:
         specifier: ^12.1.3
         version: 12.1.3
@@ -8870,7 +8873,7 @@ snapshots:
 
   pluralize@8.0.0: {}
 
-  plyr@3.8.4:
+  plyr@3.8.4(patch_hash=22161fe86d8e633a9bda1673f69eed447371d8c5fe1589ed24d17888bcb65d09):
     dependencies:
       core-js: 3.49.0
       custom-event-polyfill: 1.0.7

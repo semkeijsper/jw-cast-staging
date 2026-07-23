@@ -204,8 +204,6 @@ function onSeekEnd(value: number) {
   bottom: 0;
   left: 0;
   right: 0;
-  /* Above Vuetify overlays (~2400) so the bar stays visible over the
-     fullscreen video dialog, where casting is started from */
   z-index: 10000;
   border-radius: 0;
 }
