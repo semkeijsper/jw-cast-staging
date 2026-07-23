@@ -49,15 +49,15 @@ import { uiStrings } from '~/config/uiStrings';
 const languageStore = useLanguageStore();
 const uiStore = useUiStore();
 const { xs } = useDisplay();
-const { global: theme } = useTheme();
+const theme = useTheme();
 const { initCast } = useCast();
 
 onMounted(() => {
   const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  theme.name.value = darkQuery.matches ? 'dark' : 'light';
+  theme.change(darkQuery.matches ? 'dark' : 'light');
   // Follow OS theme changes mid-session (app root never unmounts — no cleanup)
   darkQuery.addEventListener('change', event => {
-    theme.name.value = event.matches ? 'dark' : 'light';
+    theme.change(event.matches ? 'dark' : 'light');
   });
   initCast();
 });
