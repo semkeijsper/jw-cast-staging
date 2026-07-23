@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { usePlaybackStore } from '~/stores/playback';
-import { makeVideo } from '../fixtures';
+import { makeVideo } from '../../fixtures';
 
 const A = makeVideo('vid-A');
 const B = makeVideo('vid-B');
@@ -36,7 +36,8 @@ describe('playback store — cast slice', () => {
   it('tracks position and retains lastCastPosition across castIdle (handoff source)', () => {
     const s = usePlaybackStore();
     s.setCastActive({ video: A, position: 5, duration: 100, paused: false });
-    s.updateCast({ position: 42 });
+    // syncRemotePlayer pushes a full snapshot on every RemotePlayer change
+    s.setCastActive({ video: A, position: 42, duration: 100, paused: false });
     expect(s.lastCastPosition).toBe(42);
     s.castIdle();
     expect(s.cast.kind).toBe('idle');

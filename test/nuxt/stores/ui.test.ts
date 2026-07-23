@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useUiStore } from '~/stores/ui';
-import { makeVideo } from '../fixtures';
+import { makeVideo } from '../../fixtures';
 
 beforeEach(() => setActivePinia(createPinia()));
 

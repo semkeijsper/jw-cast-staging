@@ -1,6 +1,6 @@
 import type { SubtitleCue } from '~/types';
 
-const TIMING_RE
+const TIMING_REGEX
   = /(?:(\d+):)?(\d{1,2}):(\d{2})\.(\d{3})\s+-->\s+(?:(\d+):)?(\d{1,2}):(\d{2})\.(\d{3})/;
 
 function toSeconds(hours: string | undefined, minutes: string, seconds: string, millis: string): number {
@@ -21,12 +21,12 @@ export function parseVtt(raw: string): SubtitleCue[] {
 
   for (const block of blocks) {
     const lines = block.split('\n').filter(l => l.trim().length > 0);
-    const timingIndex = lines.findIndex(l => TIMING_RE.test(l));
+    const timingIndex = lines.findIndex(l => TIMING_REGEX.test(l));
     if (timingIndex === -1) {
       continue;
     }
 
-    const match = lines[timingIndex]!.match(TIMING_RE)!;
+    const match = lines[timingIndex]!.match(TIMING_REGEX)!;
     const start = toSeconds(match[1], match[2]!, match[3]!, match[4]!);
     const end = toSeconds(match[5], match[6]!, match[7]!, match[8]!);
 

@@ -1,6 +1,5 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2025-12-21',
+  compatibilityDate: '2026-07-23',
 
   // Client-side only — no SSR
   ssr: false,
@@ -11,6 +10,7 @@ export default defineNuxtConfig({
     'pinia-plugin-persistedstate/nuxt',
     '@nuxt/eslint',
     '@nuxt/fonts',
+    '@nuxt/test-utils/module',
     'nuxt-gtag',
   ],
 
