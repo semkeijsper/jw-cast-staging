@@ -96,7 +96,7 @@
       </template>
 
       <v-card-text v-if="!transcriptMobileOpen" class="px-3 pb-3 pt-0">
-        <v-container class="pa-3">
+        <v-container class="px-3 pb-3 pt-1">
           <v-row :no-gutters="xs">
             <v-col cols="12" sm="6">
               <LanguageSelect

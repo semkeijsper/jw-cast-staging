@@ -42,7 +42,7 @@
         </v-row>
 
         <!-- Result info + sort -->
-        <v-row v-else-if="response" class="flex-grow-0">
+        <v-row v-else-if="response" class="flex-grow-0" :density="smAndDown? 'comfortable' : 'default'">
           <v-col cols="12" lg="8" sm="6">
             <span class="text-body-medium text-medium-emphasis">{{ searchMessage }}</span>
 
@@ -119,8 +119,8 @@
         <!-- Pagination -->
         <v-row
           v-if="totalPages > 1 && !hasError"
-          class="mt-auto pt-2 pb-2 flex-grow-0"
-          :class="{ 'pagination-sticky': smAndDown }"
+          class="mt-auto flex-grow-0"
+          :class="{ 'pagination-sticky pt-2 pb-2': smAndDown, 'mb-n1 pt-3': !smAndDown }"
           justify="center"
         >
           <v-pagination
