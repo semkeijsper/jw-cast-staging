@@ -101,6 +101,7 @@ export default defineNuxtConfig({
   vuetify: {
     moduleOptions: {
       styles: { configFile: 'assets/styles/settings.scss' },
+      prefixComposables: ['useLayout'],
     },
     vuetifyOptions: {
       // Vuetify 2 breakpoints; keep in sync with $grid-breakpoints in settings.scss
