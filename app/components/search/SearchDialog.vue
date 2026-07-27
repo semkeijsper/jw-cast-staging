@@ -32,7 +32,7 @@
 
       <!-- Fixed header: result count + sort (visible from open, stays while results scroll) -->
       <div
-        v-if="!hasError"
+        v-if="!hasError && (!response || results.length > 0)"
         class="sort-bar flex-grow-0 d-flex align-center justify-space-between px-4 py-2"
       >
         <span v-if="results.length > 0" class="text-body-2 text-medium-emphasis">{{ resultCount }}</span>
@@ -67,12 +67,20 @@
         </v-alert>
 
         <!-- No results -->
-        <div
-          v-else-if="response && results.length === 0 && !isLoading"
-          class="text-center text-medium-emphasis py-8"
-        >
-          <div class="text-body-1">{{ languageStore.t('noSearchResultsText') }}</div>
-          <div class="text-body-2 mt-2">{{ languageStore.t('refineSearchResultsText') }}</div>
+        <div v-else-if="response && results.length === 0 && !isLoading">
+          <span class="text-body-medium text-medium-emphasis">
+            {{ response.messages[0]?.message ?? languageStore.t('noSearchResultsText') }}
+          </span>
+
+          <div
+            v-if="response.messages[1]"
+            class="mt-1 text-body-medium text-medium-emphasis search-message"
+            v-html="response.messages[1].message"
+          />
+
+          <div v-else class="mt-1 text-body-medium text-medium-emphasis">
+            {{ languageStore.t('refineSearchResultsText') }}
+          </div>
         </div>
 
         <!-- Results grid -->

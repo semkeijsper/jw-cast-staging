@@ -5,7 +5,8 @@ export interface SearchResponse {
   results: SearchResult[];
   messages: SearchMessage[];
   insight: QueryInsight;
-  pagination: Pagination;
+  // Omitted entirely when the query returns no results
+  pagination?: Pagination;
   filters: Filter[];
   sorts: Sort[];
 }
