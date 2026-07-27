@@ -26,6 +26,20 @@ if (!window.matchMedia) {
   }));
 }
 
+// Vuetify overlay location strategies (v-select/v-menu/v-dialog) read
+// window.visualViewport, which happy-dom does not define.
+if (!window.visualViewport) {
+  vi.stubGlobal('visualViewport', {
+    width: 1024,
+    height: 768,
+    offsetLeft: 0,
+    offsetTop: 0,
+    scale: 1,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  });
+}
+
 // No layout in happy-dom; the transcript panel scrolls the active cue into view
 if (!Element.prototype.scrollTo) {
   Element.prototype.scrollTo = () => {};
