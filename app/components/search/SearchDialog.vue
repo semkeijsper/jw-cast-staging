@@ -32,6 +32,8 @@
       <v-container
         class="search-container d-flex flex-column"
       >
+        <div ref="topSentinel" />
+
         <!-- Search error -->
         <v-row v-if="hasError" class="flex-grow-0">
           <v-col cols="12">
@@ -155,6 +157,7 @@ const hasError = ref(false);
 const searchQuery = ref('');
 const response = ref<SearchResponse | null>(null);
 const offset = ref(0);
+const topSentinel = ref<HTMLElement | null>(null);
 
 const dialog = computed({
   get: () => uiStore.searchDialog,
@@ -219,9 +222,11 @@ const totalPages = computed(() =>
 
 const currentPage = computed({
   get: () => Math.floor(offset.value / LIMIT) + 1,
-  set: (page: number) => {
+  set: async(page: number) => {
     offset.value = (page - 1) * LIMIT;
-    fetchResponse(searchQuery.value);
+    await fetchResponse(searchQuery.value);
+    await nextTick();
+    topSentinel.value?.scrollIntoView({ block: 'start' });
   },
 });
 

@@ -1,7 +1,7 @@
 <template>
   <Swiper
     :breakpoints="breakpoints"
-    :free-mode="true"
+    :free-mode="{ sticky: true }"
     :modules="modules"
     :navigation="mdAndUp"
     :scrollbar="{ hide: false }"

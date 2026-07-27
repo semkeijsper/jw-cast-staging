@@ -206,6 +206,7 @@ function onSeekEnd(value: number) {
   right: 0;
   z-index: 10000;
   border-radius: 0;
+  border-top: thin solid rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .seek-row {
@@ -220,6 +221,7 @@ function onSeekEnd(value: number) {
   width: 600px;
   max-width: calc(100vw - 32px);
   border-radius: 8px;
+  border-top: none;
 }
 
 .time-label {

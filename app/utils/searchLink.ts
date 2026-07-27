@@ -11,7 +11,7 @@ export type ParsedVideoLink
 export function parseVideoLink(value: string): ParsedVideoLink {
   const finderRegex = /jw\.org\/finder\?.+&.+/;
   const mediaItemsRegex
-    = /jw\.org\/[\w-]+\/.+#(?<locale>[\w-]+)\/mediaitems\/(?<category>[\w-]+)\/(?<lank>[\w-]+)/;
+    = /jw\.org\/[\w-]+\/.+#(?<locale>[\w-]+)\/mediaitems\/[\w-]+\/(?<lank>[\w-]+)/;
 
   if (finderRegex.test(value)) {
     return {
@@ -36,6 +36,6 @@ export function parseVideoLink(value: string): ParsedVideoLink {
 
 /** The sort key from a search-sort link's `?sort=` param. */
 export function sortKeyOf(link: string): string | null {
-  const queryString = link.split('?')[1];
+  const queryString = link.split('?', 2)[1];
   return queryString ? new URLSearchParams(queryString).get('sort') : null;
 }
