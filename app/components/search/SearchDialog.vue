@@ -6,11 +6,12 @@
     scrollable
     transition="dialog-bottom-transition"
   >
-    <v-card>
+    <v-card class="d-flex flex-column">
       <v-toolbar class="flex-grow-0" color="primary">
         <!-- Search input -->
         <v-text-field
           v-model="query"
+          autocomplete="off"
           autofocus
           class="search-input ml-4 mr-1"
           clearable
@@ -29,58 +30,55 @@
         </template>
       </v-toolbar>
 
-      <v-container
-        class="search-container d-flex flex-column"
+      <!-- Fixed header: result count + sort (visible from open, stays while results scroll) -->
+      <div
+        v-if="!hasError"
+        class="sort-bar flex-grow-0 d-flex align-center justify-space-between px-4 py-2"
       >
-        <div ref="topSentinel" />
+        <span v-if="results.length > 0" class="text-body-2 text-medium-emphasis">{{ resultCount }}</span>
 
+        <v-skeleton-loader
+          v-else-if="isLoading || !response"
+          class="count-skeleton"
+          type="text"
+          width="160"
+        />
+
+        <span v-else />
+
+        <v-select
+          v-model="sort"
+          class="sort-select flex-grow-0"
+          density="compact"
+          hide-details
+          item-title="label"
+          item-value="key"
+          :items="sortItems"
+          :list-props="{ density: 'compact' }"
+          prepend-icon="mdi-sort"
+          variant="outlined"
+        />
+      </div>
+
+      <v-card-text class="results-scroll pa-4">
         <!-- Search error -->
-        <v-row v-if="hasError" class="flex-grow-0">
-          <v-col cols="12">
-            <v-alert type="error" variant="tonal">
-              {{ languageStore.t('searchFailed') }}
-            </v-alert>
-          </v-col>
-        </v-row>
+        <v-alert v-if="hasError" class="mb-4" type="error" variant="tonal">
+          {{ languageStore.t('searchFailed') }}
+        </v-alert>
 
-        <!-- Result info + sort -->
-        <v-row v-else-if="response" class="flex-grow-0" :density="smAndDown? 'comfortable' : 'default'">
-          <v-col cols="12" lg="8" sm="6">
-            <span class="text-body-medium text-medium-emphasis">{{ searchMessage }}</span>
-
-            <div
-              v-if="response.messages[1]"
-              class="mt-1 text-body-medium text-medium-emphasis search-message"
-              v-html="response.messages[1].message"
-            />
-          </v-col>
-
-          <v-col v-if="response.sorts.length > 0" cols="12" lg="4" sm="6">
-            <v-select
-              v-model="sort"
-              density="compact"
-              hide-details
-              item-title="label"
-              item-value="key"
-              :items="sortItems"
-              :list-props="{ density: 'compact' }"
-              prepend-icon="mdi-sort"
-              variant="outlined"
-            />
-          </v-col>
-        </v-row>
-
-        <!-- Skeleton while loading -->
-        <v-row v-else>
-          <v-col cols="12" lg="4" sm="6">
-            <v-skeleton-loader boilerplate :loading="isLoading" type="text" />
-          </v-col>
-        </v-row>
+        <!-- No results -->
+        <div
+          v-else-if="response && results.length === 0 && !isLoading"
+          class="text-center text-medium-emphasis py-8"
+        >
+          <div class="text-body-1">{{ languageStore.t('noSearchResultsText') }}</div>
+          <div class="text-body-2 mt-2">{{ languageStore.t('refineSearchResultsText') }}</div>
+        </div>
 
         <!-- Results grid -->
-        <v-row v-if="response && !hasError" class="flex-grow-0" :density="smAndDown? 'comfortable' : 'default'">
+        <v-row v-else-if="results.length > 0">
           <v-col
-            v-for="result in response.results"
+            v-for="result in results"
             :key="result.lank"
             cols="12"
             lg="4"
@@ -92,23 +90,12 @@
               @click="onClickResult(result)"
             />
           </v-col>
-
-          <v-col
-            v-for="i in placeholderCount"
-            :key="`placeholder-${i}`"
-            aria-hidden="true"
-            cols="12"
-            lg="4"
-            sm="6"
-          >
-            <div class="card-placeholder" />
-          </v-col>
         </v-row>
 
         <!-- Skeleton grid while loading -->
-        <v-row v-else-if="!hasError" class="flex-grow-0 pb-6">
+        <v-row v-else-if="!response">
           <v-col
-            v-for="i in skeletonCount"
+            v-for="i in 3"
             :key="i"
             cols="12"
             lg="4"
@@ -118,21 +105,15 @@
           </v-col>
         </v-row>
 
-        <!-- Pagination -->
-        <v-row
-          v-if="totalPages > 1 && !hasError"
-          class="mt-auto flex-grow-0"
-          :class="{ 'pagination-sticky pt-2 pb-2': smAndDown, 'mb-n1 pt-3': !smAndDown }"
-          justify="center"
+        <!-- Infinite-scroll sentinel + loading indicator -->
+        <div
+          v-if="!hasError && results.length > 0"
+          v-intersect="{ handler: onIntersect, options: { rootMargin: '0px' } }"
+          class="d-flex justify-center py-4"
         >
-          <v-pagination
-            v-model="currentPage"
-            density="comfortable"
-            :length="totalPages"
-            :total-visible="xs ? 4 : 7"
-          />
-        </v-row>
-      </v-container>
+          <v-progress-circular v-if="isLoadingMore" color="primary" indeterminate size="28" />
+        </div>
+      </v-card-text>
     </v-card>
   </v-dialog>
 </template>
@@ -144,20 +125,21 @@ import { useDisplay } from 'vuetify';
 
 const languageStore = useLanguageStore();
 const uiStore = useUiStore();
-const { xs, smAndDown, name: breakpointName } = useDisplay();
+const { smAndDown } = useDisplay();
 
-const LIMIT = 9;
+const LIMIT = 12;
 const DEBOUNCE_MS = 400;
 
 const jwt = ref('');
 const sort = ref('rel');
 const sortKeys = ['rel', 'newest', 'oldest'];
 const isLoading = ref(false);
+const isLoadingMore = ref(false);
 const hasError = ref(false);
 const searchQuery = ref('');
 const response = ref<SearchResponse | null>(null);
+const results = ref<SearchResult[]>([]);
 const offset = ref(0);
-const topSentinel = ref<HTMLElement | null>(null);
 
 const dialog = computed({
   get: () => uiStore.searchDialog,
@@ -180,55 +162,40 @@ const query = computed({
   },
 });
 
-const searchMessage = computed(
-  () => response.value?.pagination?.label ?? response.value?.messages[0]?.message ?? '',
+// jw.org translation strings use Java-style positional placeholders (%1$s, %2$s)
+function fmt(key: string, ...args: (string | number)[]) {
+  return languageStore.t(key).replace(/%(\d+)\$s/g, (_, i) => String(args[Number(i) - 1] ?? ''));
+}
+
+const resultCount = computed(() =>
+  fmt('searchResultsCountText', results.value.length, response.value?.insight.total.value ?? 0),
 );
+
+const sortLabelKeys: Record<string, string> = {
+  rel: 'sortRelevance',
+  newest: 'sortNewest',
+  oldest: 'sortOldest',
+};
 
 const sortItems = computed(() =>
   sortKeys.map(key => ({
     key,
-    label: response.value?.sorts.find(s => sortKeyOf(s.link) === key)?.label ?? key,
+    label: response.value?.sorts.find(s => sortKeyOf(s.link) === key)?.label
+      ?? languageStore.t(sortLabelKeys[key]!),
   })),
 );
 
-const columnCount = computed(() => {
-  switch (breakpointName.value) {
-    case 'xl':
-    case 'lg': {
-      return 3;
-    }
-    case 'md':
-    case 'sm': {
-      return 2;
-    }
-    default: {
-      return 1;
-    }
-  }
-});
-
-const skeletonCount = computed(() => (smAndDown.value ? columnCount.value : LIMIT));
-
-const placeholderCount = computed(() => {
-  if (smAndDown.value || totalPages.value <= 1) {
-    return 0;
-  }
-  return Math.max(0, LIMIT - (response.value?.results.length ?? 0));
-});
-
-const totalPages = computed(() =>
-  Math.ceil((response.value?.insight.total.value ?? 0) / LIMIT),
+const hasMore = computed(
+  () => results.value.length < (response.value?.insight.total.value ?? 0),
 );
 
-const currentPage = computed({
-  get: () => Math.floor(offset.value / LIMIT) + 1,
-  set: async(page: number) => {
-    offset.value = (page - 1) * LIMIT;
-    await fetchResponse(searchQuery.value);
-    await nextTick();
-    topSentinel.value?.scrollIntoView({ block: 'start' });
-  },
-});
+function onIntersect(isIntersecting: boolean) {
+  if (!isIntersecting || !hasMore.value || isLoading.value || isLoadingMore.value) {
+    return;
+  }
+  offset.value += LIMIT;
+  fetchResponse(searchQuery.value, { append: true });
+}
 
 async function loadToken() {
   jwt.value = await fetchToken();
@@ -256,9 +223,14 @@ async function fetchVideo(langCode: string | undefined, lank: string | undefined
 // (page/sort changes bypass the debounce and can race)
 let requestId = 0;
 
-async function fetchResponse(query: string, retried = false) {
+async function fetchResponse(query: string, { append = false, retried = false } = {}) {
   const id = retried ? requestId : ++requestId;
-  isLoading.value = true;
+  if (append) {
+    isLoadingMore.value = true;
+  }
+  else {
+    isLoading.value = true;
+  }
   hasError.value = false;
   try {
     const data = await fetchSearch(
@@ -273,6 +245,7 @@ async function fetchResponse(query: string, retried = false) {
     // Filter out category results — only show individual videos
     data.results = data.results.filter(r => r.subtype !== 'videoCategory');
     response.value = data;
+    results.value = append ? [...results.value, ...data.results] : data.results;
   }
   catch (error) {
     if (id !== requestId) {
@@ -281,7 +254,7 @@ async function fetchResponse(query: string, retried = false) {
     if (!retried && error instanceof FetchError && error.response?.status === 401) {
       try {
         await loadToken();
-        await fetchResponse(query, true);
+        await fetchResponse(query, { append, retried: true });
       }
       catch {
         hasError.value = true;
@@ -294,6 +267,7 @@ async function fetchResponse(query: string, retried = false) {
   finally {
     if (id === requestId) {
       isLoading.value = false;
+      isLoadingMore.value = false;
     }
   }
 }
@@ -305,6 +279,7 @@ function onClickResult(result: SearchResult) {
 watch(searchQuery, async value => {
   if (!value) {
     response.value = null;
+    results.value = [];
     hasError.value = false;
     return;
   }
@@ -338,6 +313,7 @@ watch(
   () => {
     searchQuery.value = '';
     response.value = null;
+    results.value = [];
     hasError.value = false;
   },
 );
@@ -355,26 +331,35 @@ watch(
 </script>
 
 <style scoped>
-.search-container {
-  min-height: 100%;
+.results-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Desktop (non-fullscreen dialog): cap height below one page of results so the
+   first page overflows and the sentinel stays below the fold — no auto-load of
+   page 2 until the user actually scrolls. */
+@media (min-width: 960px) {
+  .results-scroll {
+    max-height: min(70vh, 600px);
+  }
+}
+.sort-bar {
+  border-bottom: thin solid rgba(var(--v-theme-on-surface), 0.12);
+}
+.sort-select {
+  width: 220px;
+}
+.count-skeleton :deep(.v-skeleton-loader__bone) {
+  margin: 0;
 }
 .search-message :deep(ul) {
   margin-block: 8px;
   padding-inline-start: 24px;
   list-style: disc;
 }
-.pagination-sticky {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  background: rgb(var(--v-theme-surface));
-}
 .skeleton-card {
   aspect-ratio: 2 / 1;
-}
-.card-placeholder {
-  aspect-ratio: 2 / 1;
-  visibility: hidden;
 }
 .skeleton-card :deep(.v-skeleton-loader__image) {
   height: 100%;
