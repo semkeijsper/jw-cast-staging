@@ -7,10 +7,23 @@
       GitHub Pages SPA fallback.
       Encodes the full path into a redirect query param so the SPA router
       can restore it. Based on https://github.com/rafgraph/spa-github-pages
+
+      pathSegmentsToKeep is the number of leading path segments that belong to the
+      deployment root rather than to the app route — 0 for a custom domain served at
+      "/", 1 for a project page served at "/<repo>/". The staging deploy rewrites the
+      assignment below in the built file (see .github/workflows/staging.yml), so keep
+      it on one line with single spaces around the "=".
     -->
     <script>
+      var pathSegmentsToKeep = 0;
       var l = window.location;
-      l.replace(l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + l.pathname.split('/').slice(0, 1).join('/') + '/?p=/' + l.pathname.slice(1).split('/').join('/').replace(/&/g, '~and~') + (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') + l.hash);
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '')
+        + l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/')
+        + '/?p=/' + l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~')
+        + (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '')
+        + l.hash,
+      );
     </script>
   </head>
   <body></body>

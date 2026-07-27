@@ -7,6 +7,7 @@ This file provides guidance for AI assistants working in this repository.
 **jw-cast** is a Nuxt 4 + Vue 3 + TypeScript single-page application that provides a frontend interface for browsing and playing Jehovah's Witnesses media from jw.org. Users can independently select the audio language and subtitle language for videos, and watch via the embedded Plyr player, native Chromecast (Google Cast SDK), or download via VLC.
 
 - **Live site:** https://jwcast.semdev.nl
+- **Staging:** https://semkeijsper.github.io/jw-cast-staging/ (mirror repo, see Deployment → Staging)
 - **Deployment:** `pnpm run build` → `git subtree push --prefix .output/public origin gh-pages`
 - **No backend:** pure client-side app consuming jw.org's public API directly
 
@@ -111,6 +112,8 @@ test/                                # Vitest suites (see Testing)
 └── nuxt/                            # Store + component specs (Nuxt env, mountSuspended)
 build/
 └── prerender-seo.ts                 # Build-time head patcher for prerendered shells (see SEO)
+.github/workflows/
+└── staging.yml                      # Staging Pages deploy; inert here, runs only in the mirror repo
 patches/
 └── plyr.patch                       # pnpm patch: drop "type":"module" from plyr's package.json
 ```
@@ -272,8 +275,9 @@ The page validates unknown locales after fetching the full language list (redire
 
 The app stays `ssr: false`, but `nitro.prerender.routes` emits a static HTML shell per language route (`/`, plus the locales in `prerenderLocales`, kept in sync with `public/sitemap.xml`). Point of this is **not** rendered content — with `ssr: false` the shells contain no markup and page-level `useHead` never runs. It is that GitHub Pages answers `/:language` with a real 200 + full head instead of falling through to `public/404.html`, which carries no meta at all. Social crawlers (WhatsApp, Facebook, X) never execute JS, so a shared deep link previewed as nothing before.
 
-- `config/seoMeta.ts` — locale-keyed `{ title, description }`, `SITE_URL`, `prerenderLocales`, `htmlLangOf` (locale → BCP 47, e.g. `cmn_hans` → `zh-hans`). Locales without an entry fall back to `en`. **No `~`/`@` imports** — nuxt.config loads this file outside the app's alias resolution.
-- `build/prerender-seo.ts` — `applyPrerenderSeo(html, route)`, called from the `prerender:generate` nitro hook in `nuxt.config.ts`. Rewrites `<title>`, description, `og:*`/`twitter:*`, `<html lang>`, canonical and hreflang alternates per locale. Skips `/200.html` (fallback shell — a pinned canonical would be wrong) and treats `/index.html` as `/` (nitro prerenders the root twice; the second pass would otherwise overwrite the patched file).
+- `config/seoMeta.ts` — locale-keyed `{ title, description }`, `SITE_URL`, `prerenderLocales`, `htmlLangOf` (locale → BCP 47, e.g. `cmn_hans` → `zh-hans`). Locales without an entry fall back to `en`. **No `~`/`@` imports** — nuxt.config loads this file outside the app's alias resolution. `SITE_URL` reads `process.env.NUXT_PUBLIC_SITE_URL` (see Staging).
+- `build/prerender-seo.ts` — `applyPrerenderSeo(html, route, base)`, called from the `prerender:generate` nitro hook in `nuxt.config.ts`. Rewrites `<title>`, description, `og:*`/`twitter:*`, `<html lang>`, canonical and hreflang alternates per locale. Strips `base` off the route before reading the locale (staging routes arrive as `/jw-cast-staging/nl`). Skips `/200.html` (fallback shell — a pinned canonical would be wrong) and treats `/index.html` as `/` (nitro prerenders the root twice; the second pass would otherwise overwrite the patched file).
+- Prerender routes are built as `` `${baseURL}${locale}` `` — nitro fetches them origin-absolute, so without the base the app just redirects and nitro saves a redirect stub instead of a shell.
 - The page (`[language]/[[videoId]].vue`) sets the same values via `useHead` so client-side language switches stay in sync.
 - Video routes are deliberately **not** prerendered: unbounded, and the content is jw.org's canonical material.
 - Adding a locale to `sitemap.xml` means adding it to `prerenderLocales` too (and ideally a `seoMeta` block, else it gets English copy).
@@ -347,7 +351,27 @@ pnpm build
 git subtree push --prefix .output/public origin gh-pages
 ```
 
-`public/404.html` handles GitHub Pages' lack of server-side routing by encoding the path into a query param, which an inline head script in `nuxt.config.ts` restores before the router boots.
+`public/404.html` handles GitHub Pages' lack of server-side routing by encoding the path into a query param, which an inline head script in `nuxt.config.ts` restores before the router boots. `pathSegmentsToKeep` in 404.html is the number of leading path segments belonging to the deployment root (0 at a custom domain, 1 under a project page); the restore script prepends `baseURL` back onto the decoded path.
+
+### Staging
+
+`semkeijsper/jw-cast-staging` is a **pure mirror** — its `master` is an exact copy of whatever branch is under test, with **no commits of its own**. Update it with one force-push:
+
+```bash
+git push git@github.com:semkeijsper/jw-cast-staging.git feature/nuxt-4-migration:master --force
+```
+
+Everything that differs between the two deploys is applied at build time by `.github/workflows/staging.yml` (which lives in *this* repo, guarded by `if: github.repository == 'semkeijsper/jw-cast-staging'` so it never runs here):
+
+| Difference | How |
+|---|---|
+| Served from `/jw-cast-staging/`, not `/` | `NUXT_APP_BASE_URL` — feeds `app.baseURL`, the head `link` hrefs, the 404 restore script, and the prerender routes |
+| Canonical/OG point at the staging origin | `NUXT_PUBLIC_SITE_URL` — read by `config/seoMeta.ts`; mirrored into `vite.define` so the client bundle sees it too (`process.env` is an empty shim in the browser) |
+| No custom domain | `rm .output/public/CNAME` |
+| Extra path segment in 404 fallback | `sed` `pathSegmentsToKeep` 0 → 1 |
+| Kept out of search results | `robots.txt` `Disallow: /`, sitemap removed, `robots` meta sed to `noindex, nofollow` |
+
+So: **keep staging-specific behavior in the workflow, never in a commit.** An overlay commit would have to be rebased on every update; this way there is nothing to rebase.
 
 ## Git Workflow
 

@@ -1,0 +1,93 @@
+# Deploys the staging site (https://semkeijsper.github.io/jw-cast-staging/).
+#
+# This workflow lives in the production repo so the staging repo can stay an exact
+# mirror of the branch under test — updating staging is then a single force-push of
+# that branch onto semkeijsper/jw-cast-staging's master, with no overlay commits to
+# rebase. The repository guard on both jobs keeps it inert in semkeijsper/jw-cast.
+#
+# Everything that differs between the two deploys is applied here rather than
+# committed: the base URL, the removed CNAME, the 404.html path offset, and the
+# crawler opt-out.
+name: Deploy staging
+
+on:
+  push:
+    branches: ['master']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: staging-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'semkeijsper/jw-cast-staging'
+    runs-on: ubuntu-latest
+
+    env:
+      # GitHub Pages project page: served from a subpath, not the site root
+      NUXT_APP_BASE_URL: /jw-cast-staging/
+      NUXT_PUBLIC_SITE_URL: https://semkeijsper.github.io/jw-cast-staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Drop the production CNAME
+        run: rm -f .output/public/CNAME
+
+      - name: Point 404.html past the project-page path segment
+        run: |
+          sed -i 's/pathSegmentsToKeep = 0/pathSegmentsToKeep = 1/' .output/public/404.html
+          grep -q 'pathSegmentsToKeep = 1' .output/public/404.html
+
+      - name: Keep staging out of search results
+        run: |
+          printf 'User-agent: *\nDisallow: /\n' > .output/public/robots.txt
+          rm -f .output/public/sitemap.xml
+          find .output/public -name '*.html' -exec \
+            sed -i 's/name="robots" content="index, follow"/name="robots" content="noindex, nofollow"/g' {} +
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload dist folder
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./.output/public
+
+  deploy:
+    if: github.repository == 'semkeijsper/jw-cast-staging'
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

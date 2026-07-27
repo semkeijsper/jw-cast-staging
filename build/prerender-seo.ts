@@ -37,11 +37,17 @@ function alternateLinks(): string {
   return `<link rel="alternate" hreflang="x-default" href="${SITE_URL}">${links.join('')}`;
 }
 
-/** `route` is the prerendered path, e.g. `/` or `/nl`. */
-export function applyPrerenderSeo(html: string, route: string): string {
+/**
+ * `route` is the prerendered path as nitro saw it, so it includes the deployment
+ * `base` (`/` in production, `/jw-cast-staging/` on staging) — e.g. `/nl` or
+ * `/jw-cast-staging/nl`. Canonicals are built from SITE_URL, which already carries
+ * the subpath, so the base is stripped before the locale is read off the path.
+ */
+export function applyPrerenderSeo(html: string, route: string, base = '/'): string {
+  const relative = base !== '/' && route.startsWith(base) ? route.slice(base.length - 1) : route;
   // Nitro prerenders the root twice, as `/` and `/index.html`; the latter runs last
   // and would otherwise overwrite the patched file
-  const path = route.replace(/\/index\.html$/, '') || '/';
+  const path = relative.replace(/\/index\.html$/, '') || '/';
   const locale = path === '/' ? 'en' : path.replace(/^\//, '');
   // Skip /200.html — it is a fallback shell answering for arbitrary URLs, so a
   // canonical or locale pinned to it would be wrong

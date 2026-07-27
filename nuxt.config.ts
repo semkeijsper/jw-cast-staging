@@ -3,6 +3,11 @@ import { applyPrerenderSeo } from './build/prerender-seo';
 
 const defaultSeo = seoFor('en');
 
+// Production is a custom domain served at "/"; the staging deploy is a GitHub Pages
+// project page under "/jw-cast-staging/" and sets these two vars in CI.
+const baseURL = process.env.NUXT_APP_BASE_URL || '/';
+const siteUrlEnv = process.env.NUXT_PUBLIC_SITE_URL || '';
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-07-23',
 
@@ -28,6 +33,8 @@ export default defineNuxtConfig({
   components: [{ path: '~/components', pathPrefix: false }],
 
   app: {
+    baseURL,
+
     // GitHub Pages SPA: handle history-mode routing via 404.html redirect
     head: {
       title: defaultSeo.title,
@@ -59,13 +66,15 @@ export default defineNuxtConfig({
         },
         { name: 'robots', content: 'index, follow' },
       ],
+      // baseURL ends in "/", so these resolve to /assets/… in production and to
+      // /jw-cast-staging/assets/… on the staging project page
       link: [
-        { rel: 'apple-touch-icon', sizes: '180x180', href: '/assets/apple-touch-icon.png' },
-        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/assets/favicon-32x32.png' },
-        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/assets/favicon-16x16.png' },
-        { rel: 'manifest', href: '/assets/site.webmanifest' },
-        { rel: 'mask-icon', href: '/assets/safari-pinned-tab.svg', color: '#4a6da7' },
-        { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: `${baseURL}assets/apple-touch-icon.png` },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${baseURL}assets/favicon-32x32.png` },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: `${baseURL}assets/favicon-16x16.png` },
+        { rel: 'manifest', href: `${baseURL}assets/site.webmanifest` },
+        { rel: 'mask-icon', href: `${baseURL}assets/safari-pinned-tab.svg`, color: '#4a6da7' },
+        { rel: 'shortcut icon', href: `${baseURL}favicon.ico` },
       ],
       script: [
         {
@@ -73,7 +82,9 @@ export default defineNuxtConfig({
           // Must run as an inline head script so the URL is fixed before the module
           // entry script boots Vue Router — restoring it any later (e.g. onMounted)
           // loses the race against the router resolving "/" and redirecting.
-          innerHTML: String.raw`(function(l){var m=/^\?p=(\/[^&]*)(?:&q=([^&]*))?/.exec(l.search);if(m){var p=m[1].replace(/~and~/g,'&');var q=m[2]?'?'+m[2].replace(/~and~/g,'&'):'';window.history.replaceState(null,'',p+q+l.hash);}})(window.location);`,
+          // The encoded path is app-relative, so the baseURL is prepended back on
+          // (a no-op on production, where baseURL is "/").
+          innerHTML: String.raw`(function(l,b){var m=/^\?p=(\/[^&]*)(?:&q=([^&]*))?/.exec(l.search);if(m){var p=m[1].replace(/~and~/g,'&');var q=m[2]?'?'+m[2].replace(/~and~/g,'&'):'';window.history.replaceState(null,'',b+p.slice(1)+q+l.hash);}})(window.location,${JSON.stringify(baseURL)});`,
         },
         {
           // Early Cast callback — captures SDK readiness before Vue mounts
@@ -153,7 +164,10 @@ export default defineNuxtConfig({
       // Static shells per language route so GitHub Pages answers /:language with a
       // real 200 + meta instead of falling through to public/404.html.
       crawlLinks: false,
-      routes: ['/', ...prerenderLocales.map(locale => `/${locale}`)],
+      // Routes are origin-absolute, so they carry the baseURL — without it the app
+      // redirects /:locale to the based path and nitro saves a redirect stub instead
+      // of a shell.
+      routes: [baseURL, ...prerenderLocales.map(locale => `${baseURL}${locale}`)],
     },
   },
 
@@ -163,12 +177,19 @@ export default defineNuxtConfig({
         if (typeof route.contents !== 'string' || !route.fileName?.endsWith('.html')) {
           return;
         }
-        route.contents = applyPrerenderSeo(route.contents, route.route);
+        route.contents = applyPrerenderSeo(route.contents, route.route, baseURL);
       });
     },
   },
 
   vite: {
+    define: {
+      // config/seoMeta.ts reads this to build canonical/OG URLs. It runs both at
+      // build time (nuxt.config, build/prerender-seo.ts) and in the client bundle,
+      // where process.env is an empty shim — so inline the value for the client.
+      'process.env.NUXT_PUBLIC_SITE_URL': JSON.stringify(siteUrlEnv),
+    },
+
     optimizeDeps: {
       include: [
         'plyr',

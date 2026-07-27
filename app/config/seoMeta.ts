@@ -16,7 +16,15 @@ export interface SeoMeta {
   description: string;
 }
 
-export const SITE_URL = 'https://jwcast.semdev.nl';
+/**
+ * Origin the canonical/OG URLs are built from, without a trailing slash.
+ *
+ * Overridable so the staging deploy (a GitHub Pages project page under
+ * /jw-cast-staging/) emits its own canonicals instead of pointing at production.
+ * nuxt.config mirrors the value into `vite.define` so the client bundle sees the
+ * same string as the build-time prerender patcher.
+ */
+export const SITE_URL = process.env.NUXT_PUBLIC_SITE_URL || 'https://jwcast.semdev.nl';
 
 /** Locales that get a prerendered HTML shell — keep in sync with public/sitemap.xml. */
 export const prerenderLocales = [
