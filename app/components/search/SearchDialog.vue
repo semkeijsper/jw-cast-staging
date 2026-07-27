@@ -109,7 +109,7 @@
         <div
           v-if="!hasError && results.length > 0"
           v-intersect="{ handler: onIntersect, options: { rootMargin: '0px' } }"
-          class="d-flex justify-center py-4"
+          class="scroll-sentinel d-flex justify-center py-4"
         >
           <v-progress-circular v-if="isLoadingMore" color="primary" indeterminate size="28" />
         </div>
@@ -140,6 +140,7 @@ const searchQuery = ref('');
 const response = ref<SearchResponse | null>(null);
 const results = ref<SearchResult[]>([]);
 const offset = ref(0);
+const exhausted = ref(false);
 
 const dialog = computed({
   get: () => uiStore.searchDialog,
@@ -185,8 +186,10 @@ const sortItems = computed(() =>
   })),
 );
 
+// The server total counts videoCategory rows we filter out, so results.length
+// alone never reaches it — the raw page size is the real end-of-list signal
 const hasMore = computed(
-  () => results.value.length < (response.value?.insight.total.value ?? 0),
+  () => !exhausted.value && results.value.length < (response.value?.insight.total.value ?? 0),
 );
 
 function onIntersect(isIntersecting: boolean) {
@@ -230,6 +233,7 @@ async function fetchResponse(query: string, { append = false, retried = false } 
   }
   else {
     isLoading.value = true;
+    exhausted.value = false;
   }
   hasError.value = false;
   try {
@@ -241,6 +245,9 @@ async function fetchResponse(query: string, { append = false, retried = false } 
     );
     if (id !== requestId) {
       return;
+    }
+    if (data.results.length < LIMIT) {
+      exhausted.value = true;
     }
     // Filter out category results — only show individual videos
     data.results = data.results.filter(r => r.subtype !== 'videoCategory');
@@ -281,6 +288,7 @@ watch(searchQuery, async value => {
     response.value = null;
     results.value = [];
     hasError.value = false;
+    exhausted.value = false;
     return;
   }
 
@@ -315,6 +323,7 @@ watch(
     response.value = null;
     results.value = [];
     hasError.value = false;
+    exhausted.value = false;
   },
 );
 
@@ -343,6 +352,11 @@ watch(
   .results-scroll {
     max-height: min(70vh, 600px);
   }
+}
+/* Reserve the spinner's height so toggling it never resizes the sentinel —
+   a resize re-fires the IntersectionObserver and can loop the fetch */
+.scroll-sentinel {
+  min-height: 28px;
 }
 .sort-bar {
   border-bottom: thin solid rgba(var(--v-theme-on-surface), 0.12);
