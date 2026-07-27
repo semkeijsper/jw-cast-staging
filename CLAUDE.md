@@ -355,11 +355,13 @@ git subtree push --prefix .output/public origin gh-pages
 
 ### Staging
 
-`semkeijsper/jw-cast-staging` is a **pure mirror** — its `master` is an exact copy of whatever branch is under test, with **no commits of its own**. Update it with one force-push:
+`semkeijsper/jw-cast-staging` is a **pure mirror** — its `master` is an exact copy of whatever branch is under test, with **no commits of its own**. Deploy the current branch with:
 
 ```bash
-git push git@github.com:semkeijsper/jw-cast-staging.git feature/nuxt-4-migration:master --force
+pnpm deploy:staging     # git push staging HEAD:master --force
 ```
+
+Needs the remote once: `git remote add staging https://github.com/semkeijsper/jw-cast-staging.git`. The force is intended — staging holds nothing worth keeping, and `--force-with-lease` would just fail on the first push from a different branch.
 
 Everything that differs between the two deploys is applied at build time by `.github/workflows/staging.yml` (which lives in *this* repo, guarded by `if: github.repository == 'semkeijsper/jw-cast-staging'` so it never runs here):
 
