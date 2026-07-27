@@ -1,4 +1,4 @@
-import { mountSuspended } from '@nuxt/test-utils/runtime';
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime';
 import { flushPromises } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TranscriptPanel from '~/components/player/TranscriptPanel.vue';
@@ -15,12 +15,17 @@ alpha
 beta gamma
 `;
 
+// The VTT is fetched with Nuxt's auto-imported `$fetch`; mock that auto-import
+// (a plain vi.stubGlobal no longer intercepts it under @nuxt/test-utils).
+const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
+mockNuxtImport('$fetch', () => fetchMock);
+
 beforeEach(() => {
-  vi.stubGlobal('$fetch', vi.fn().mockResolvedValue(VTT));
+  fetchMock.mockResolvedValue(VTT);
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  fetchMock.mockReset();
 });
 
 async function mountPanel(currentTime: number) {
