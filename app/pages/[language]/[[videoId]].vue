@@ -51,6 +51,7 @@
 
 <script setup lang="ts">
 import { useDisplay } from 'vuetify';
+import { htmlLangOf, seoFor, SITE_URL } from '~/config/seoMeta';
 
 definePageMeta({
   // Keep the same component instance when only videoId changes (e.g. opening/closing a video
@@ -70,6 +71,22 @@ const loadFailed = ref(false);
 
 const language = computed(() => route.params.language as string);
 const videoId = computed(() => route.params.videoId as string | undefined);
+
+// Keeps title/meta in sync on client-side language switches; the prerendered
+// shells carry the same values for crawlers (build/prerender-seo.ts)
+const seo = computed(() => seoFor(language.value));
+
+useHead({
+  title: () => seo.value.title,
+  htmlAttrs: { lang: () => htmlLangOf(language.value) },
+  meta: [
+    { name: 'description', content: () => seo.value.description },
+    { property: 'og:title', content: () => seo.value.title },
+    { property: 'og:description', content: () => seo.value.description },
+    { property: 'og:url', content: () => `${SITE_URL}/${language.value}` },
+  ],
+  link: [{ rel: 'canonical', href: () => `${SITE_URL}/${language.value}` }],
+});
 
 // Two-way binding for the language autocomplete
 const siteLanguage = computed({

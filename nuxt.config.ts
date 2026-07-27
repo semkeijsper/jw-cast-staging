@@ -1,3 +1,8 @@
+import { prerenderLocales, seoFor, SITE_URL } from './app/config/seoMeta';
+import { applyPrerenderSeo } from './build/prerender-seo';
+
+const defaultSeo = seoFor('en');
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-07-23',
 
@@ -25,17 +30,28 @@ export default defineNuxtConfig({
   app: {
     // GitHub Pages SPA: handle history-mode routing via 404.html redirect
     head: {
-      title: 'JW Cast',
+      title: defaultSeo.title,
       meta: [
         { charset: 'utf8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
         { name: 'google', content: 'notranslate' },
-        { name: 'title', content: 'JW Cast' },
-        {
-          name: 'description',
-          content:
-            'Cast jw.org videos to your TV with subtitles of any language, or download the video and subtitle files to use with a media player such as VLC.',
-        },
+        { name: 'title', content: defaultSeo.title },
+        { name: 'description', content: defaultSeo.description },
+        // Social previews: WhatsApp/Facebook/X crawlers never run JS, so these must be
+        // in the served HTML. Per-locale values are patched in by build/prerender-seo.ts.
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'JW Cast' },
+        { property: 'og:url', content: SITE_URL },
+        { property: 'og:title', content: defaultSeo.title },
+        { property: 'og:description', content: defaultSeo.description },
+        { property: 'og:image', content: `${SITE_URL}/assets/android-chrome-256x256.png` },
+        { property: 'og:image:width', content: '256' },
+        { property: 'og:image:height', content: '256' },
+        { property: 'og:locale', content: 'en' },
+        { name: 'twitter:card', content: 'summary' },
+        { name: 'twitter:title', content: defaultSeo.title },
+        { name: 'twitter:description', content: defaultSeo.description },
+        { name: 'twitter:image', content: `${SITE_URL}/assets/android-chrome-256x256.png` },
         {
           name: 'keywords',
           content:
@@ -130,6 +146,26 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: true,
+  },
+
+  nitro: {
+    prerender: {
+      // Static shells per language route so GitHub Pages answers /:language with a
+      // real 200 + meta instead of falling through to public/404.html.
+      crawlLinks: false,
+      routes: ['/', ...prerenderLocales.map(locale => `/${locale}`)],
+    },
+  },
+
+  hooks: {
+    'nitro:init'(nitro) {
+      nitro.hooks.hook('prerender:generate', route => {
+        if (typeof route.contents !== 'string' || !route.fileName?.endsWith('.html')) {
+          return;
+        }
+        route.contents = applyPrerenderSeo(route.contents, route.route);
+      });
+    },
   },
 
   vite: {

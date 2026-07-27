@@ -90,6 +90,7 @@ app/
 │   └── vtt.ts                       # parseVtt
 ├── config/                          # Hand-maintained data tables (NOT auto-imported — import explicitly)
 │   ├── uiStrings.ts                 # Locale-keyed UI string dictionary (see UI Strings below)
+│   ├── seoMeta.ts                   # Locale-keyed title/description + SITE_URL (see SEO)
 │   └── whatsappChannels.ts          # Per-language WhatsApp channel links
 ├── stores/
 │   ├── language.ts                  # useLanguageStore — languages, locales, translations, t()
@@ -108,6 +109,8 @@ test/                                # Vitest suites (see Testing)
 ├── setup.ts                         # happy-dom browser-API stubs for the nuxt project
 ├── unit/                            # Pure-function specs (plain Node)
 └── nuxt/                            # Store + component specs (Nuxt env, mountSuspended)
+build/
+└── prerender-seo.ts                 # Build-time head patcher for prerendered shells (see SEO)
 patches/
 └── plyr.patch                       # pnpm patch: drop "type":"module" from plyr's package.json
 ```
@@ -264,6 +267,16 @@ Note: the Guide button resolves specially in `app.vue` (`uiStrings[locale]?.guid
 When a video is opened (by clicking a card or from URL), the route becomes `/:language/:languageAgnosticNaturalKey`; closing the dialog pops back to `/:language`. This URL sync has a **single owner**: `composables/useVideoRoute.ts`, called from the page. Do not push/pop video routes anywhere else.
 
 The page validates unknown locales after fetching the full language list (redirect to `/en`) and shows a retry alert if the initial language/translation fetches fail.
+
+## SEO / Prerendering
+
+The app stays `ssr: false`, but `nitro.prerender.routes` emits a static HTML shell per language route (`/`, plus the locales in `prerenderLocales`, kept in sync with `public/sitemap.xml`). Point of this is **not** rendered content — with `ssr: false` the shells contain no markup and page-level `useHead` never runs. It is that GitHub Pages answers `/:language` with a real 200 + full head instead of falling through to `public/404.html`, which carries no meta at all. Social crawlers (WhatsApp, Facebook, X) never execute JS, so a shared deep link previewed as nothing before.
+
+- `config/seoMeta.ts` — locale-keyed `{ title, description }`, `SITE_URL`, `prerenderLocales`, `htmlLangOf` (locale → BCP 47, e.g. `cmn_hans` → `zh-hans`). Locales without an entry fall back to `en`. **No `~`/`@` imports** — nuxt.config loads this file outside the app's alias resolution.
+- `build/prerender-seo.ts` — `applyPrerenderSeo(html, route)`, called from the `prerender:generate` nitro hook in `nuxt.config.ts`. Rewrites `<title>`, description, `og:*`/`twitter:*`, `<html lang>`, canonical and hreflang alternates per locale. Skips `/200.html` (fallback shell — a pinned canonical would be wrong) and treats `/index.html` as `/` (nitro prerenders the root twice; the second pass would otherwise overwrite the patched file).
+- The page (`[language]/[[videoId]].vue`) sets the same values via `useHead` so client-side language switches stay in sync.
+- Video routes are deliberately **not** prerendered: unbounded, and the content is jw.org's canonical material.
+- Adding a locale to `sitemap.xml` means adding it to `prerenderLocales` too (and ideally a `seoMeta` block, else it gets English copy).
 
 ## API Integration
 
