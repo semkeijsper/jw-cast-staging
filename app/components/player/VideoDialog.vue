@@ -113,6 +113,7 @@
                 class="mt-4"
                 icon="mdi-subtitles"
                 :items="availableLanguages"
+                :loading="subtitleLoading"
               />
             </v-col>
           </v-row>
@@ -170,7 +171,7 @@ const { castDeviceName, seekTo: castSeekTo } = useCast();
 
 const playerEl = ref<HTMLVideoElement | null>(null);
 
-const { loading, videoMedia, subtitleMedia, captionUrl, subtitleUrl }
+const { loading, subtitleLoading, videoMedia, subtitleMedia, captionUrl, subtitleUrl }
   = useMediaItems(() => captureResume());
 
 // The cast session is global (one device); the store's cast slice carries the
@@ -266,6 +267,9 @@ watch(
   () => uiStore.videoDialog,
   open => {
     if (!open) {
+      // Capture before destroy — destroyPlayer clears the local slice
+      // captureResume falls back to, and reopening resumes from here
+      captureResume();
       destroyPlayer();
       uiStore.setTranscriptPanel(false);
     }

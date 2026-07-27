@@ -28,6 +28,11 @@ export function usePlyrPlayer(
 
   let player: Plyr | undefined = undefined;
   let playerLoadId = 0;
+  // The <video> the current instance was constructed on, and the media its
+  // source was last set from — together they tell a host remount apart from a
+  // language switch
+  let playerHost: HTMLVideoElement | null = null;
+  let loadedVideoMedia: Video | null = null;
   // Playback position to restore after a language switch rebuilds the player
   let resumeTime = 0;
 
@@ -101,6 +106,106 @@ export function usePlyrPlayer(
   onMounted(() => landscapeQuery.addEventListener('change', onOrientationChange));
   onBeforeUnmount(() => landscapeQuery.removeEventListener('change', onOrientationChange));
 
+  function mediaEl() {
+    return player?.elements.container?.querySelector('video') ?? null;
+  }
+
+  // Mirrors Plyr's own captions on/off preference, which it persists but does
+  // not expose as a readable property
+  let captionsEnabled = true;
+
+  // Plyr persists the last caption language it was told about (localStorage)
+  // and that stored value wins over config.captions.language on every setup,
+  // so the selected subtitle language has to be re-asserted rather than assumed.
+  function syncCaptionLanguage() {
+    const locale = languageStore.subtitleLanguageInfo.locale;
+    if (!player || !source.subtitleUrl.value) {
+      return;
+    }
+    // Plyr leaves captions.currentTrack pointing at a stale index when the
+    // selected track disappears, so player.language only reports the truth
+    // while captions are actually on (currentTrack is -1 otherwise)
+    if (player.currentTrack !== -1 && player.language === locale) {
+      return;
+    }
+    // The language setter is non-passive: it selects the track and forces
+    // captions on, clobbering the user's own toggle — put that back
+    const wanted = captionsEnabled;
+    player.language = locale;
+
+    // Plyr only refreshes its reference to the selected track node when the
+    // track *index* changes. Swapping one subtitle track for another reuses
+    // the index, so Plyr keeps re-enabling the track it just dropped and the
+    // new one is never put into rendering mode. Its cue lookup goes by index
+    // and is already correct, so only the mode has to be applied by hand.
+    // 'hidden' means "cues live, but the browser does not draw them" — Plyr
+    // draws them itself behind its own captions-active class, so this is also
+    // safe to apply while captions are toggled off, and it is what makes them
+    // show the right language when they are toggled back on.
+    const tracks = mediaEl()?.textTracks;
+    for (const track of tracks ?? []) {
+      if (track.kind === 'subtitles' && track.language === locale) {
+        track.mode = 'hidden';
+      }
+    }
+
+    if (!wanted) {
+      player.toggleCaptions(false);
+    }
+  }
+
+  // A subtitle-language switch changes only the <track>, never the video file.
+  // Plyr runs with captions.update, so it re-reads media.textTracks on
+  // addtrack/removetrack — swapping the element in place keeps playback running
+  // instead of rebuilding the player. Only kind="subtitles" is touched; the
+  // kind="captions" track belongs to the audio language.
+  function applySubtitleTrack() {
+    const media = mediaEl();
+    if (!player || !media) {
+      return;
+    }
+
+    // Dropping the active track makes Plyr switch captions off and emit
+    // captionsdisabled, which is not a user choice — snapshot the preference
+    // first and put it back once the swap has settled
+    const wanted = captionsEnabled;
+
+    for (const t of media.querySelectorAll('track[kind="subtitles"]')) {
+      t.remove();
+    }
+
+    const url = source.subtitleUrl.value;
+    if (!url) {
+      setTimeout(() => {
+        captionsEnabled = wanted;
+      });
+      return;
+    }
+
+    const track = document.createElement('track');
+    track.kind = 'subtitles';
+    track.label = languageLabel(languageStore.subtitleLanguageInfo);
+    track.srclang = languageStore.subtitleLanguageInfo.locale;
+    track.src = url;
+
+    // Plyr only registers a track once its own addtrack handler has populated
+    // captions.meta, so select the language after that handler — never on the
+    // same tick as the append
+    media.textTracks.addEventListener('addtrack', () => {
+      captionsEnabled = wanted;
+      syncCaptionLanguage();
+    }, { once: true });
+    media.append(track);
+  }
+
+  watch(source.subtitleUrl, () => {
+    // A video or audio-language change replaces videoMedia; that path needs a
+    // full source assignment and is handled by loadPlayer instead
+    if (player && source.videoMedia.value === loadedVideoMedia) {
+      applySubtitleTrack();
+    }
+  });
+
   async function loadPlayer() {
     if (!playerEl.value || !source.videoMedia.value) {
       return;
@@ -114,8 +219,13 @@ export function usePlyrPlayer(
     if (id !== playerLoadId || !playerEl.value || !source.videoMedia.value) {
       return;
     }
-    if (player) {
+
+    // Plyr's source setter swaps the media element in place and only soft-
+    // destroys, so a live instance is reusable; it has to be thrown away just
+    // when Vue remounted the host it was built on (dialog reopen, cast handoff)
+    if (player && playerHost !== playerEl.value) {
       player.destroy();
+      player = undefined;
     }
 
     if (uiStore.selectedVideo) {
@@ -140,40 +250,54 @@ export function usePlyrPlayer(
       });
     }
 
-    player = new Plyr(playerEl.value, {
-      // Plyr's default control bar minus the volume slider on mobile: it crowds
-      // out the flex-growing progress bar on narrow portrait viewports. The mute
-      // toggle stays; hardware volume keys handle levels there.
-      controls: [
-        'play-large', 'play', 'progress', 'current-time', 'mute',
-        ...(smAndDown.value ? [] : ['volume']),
-        'captions', 'settings', 'pip', 'airplay', 'fullscreen',
-      ],
-      quality: { default: 1080, options: [1080, 720, 480, 360, 240] },
-      captions: { active: true, language: languageStore.subtitleLanguageInfo.locale, update: true },
-      // Few enough options that the settings menu can't soft-lock
-      speed: { selected: 1, options: [0.75, 1, 1.25, 1.5] },
-      // Fullscreen the whole row so the transcript panel stays visible (desktop)
-      ...(smAndDown.value ? {} : { fullscreen: { container: '.player-row' } }),
-    });
-    player.on('ready', injectTranscriptButton);
-    player.on('ready', () => {
-      if (uiStore.selectedVideo) {
-        playback.setLocalReady(uiStore.selectedVideo);
-      }
-    });
+    // Listeners bind once per instance — Plyr's soft destroy keeps the
+    // container they live on, so re-registering on reuse would stack them
+    if (!player) {
+      playerHost = playerEl.value;
+      player = new Plyr(playerEl.value, {
+        // Plyr's default control bar minus the volume slider on mobile: it crowds
+        // out the flex-growing progress bar on narrow portrait viewports. The mute
+        // toggle stays; hardware volume keys handle levels there.
+        controls: [
+          'play-large', 'play', 'progress', 'current-time', 'mute',
+          ...(smAndDown.value ? [] : ['volume']),
+          'captions', 'settings', 'pip', 'airplay', 'fullscreen',
+        ],
+        quality: { default: 1080, options: [1080, 720, 480, 360, 240] },
+        captions: { active: true, language: languageStore.subtitleLanguageInfo.locale, update: true },
+        // Few enough options that the settings menu can't soft-lock
+        speed: { selected: 1, options: [0.75, 1, 1.25, 1.5] },
+        // Fullscreen the whole row so the transcript panel stays visible (desktop)
+        ...(smAndDown.value ? {} : { fullscreen: { container: '.player-row' } }),
+      });
+      player.on('captionsenabled', () => {
+        captionsEnabled = true;
+      });
+      player.on('captionsdisabled', () => {
+        captionsEnabled = false;
+      });
+      player.on('ready', injectTranscriptButton);
+      player.on('ready', syncCaptionLanguage);
+      player.on('ready', () => {
+        if (uiStore.selectedVideo) {
+          playback.setLocalReady(uiStore.selectedVideo);
+        }
+      });
 
-    player.on('timeupdate', () => {
-      playback.updateLocal({ position: player?.currentTime ?? 0 });
-    });
-    player.on('loadedmetadata', () => {
-      playback.updateLocal({ duration: player?.duration ?? 0 });
-    });
-    const syncPaused = () => playback.updateLocal({ paused: player?.paused ?? true });
-    player.on('play', syncPaused);
-    player.on('pause', syncPaused);
-    player.on('playing', syncPaused);
-    player.on('ended', syncPaused);
+      player.on('timeupdate', () => {
+        playback.updateLocal({ position: player?.currentTime ?? 0 });
+      });
+      player.on('loadedmetadata', () => {
+        playback.updateLocal({ duration: player?.duration ?? 0 });
+      });
+      const syncPaused = () => playback.updateLocal({ paused: player?.paused ?? true });
+      player.on('play', syncPaused);
+      player.on('pause', syncPaused);
+      player.on('playing', syncPaused);
+      player.on('ended', syncPaused);
+    }
+
+    loadedVideoMedia = source.videoMedia.value;
 
     player.source = {
       type: 'video',
@@ -233,6 +357,8 @@ export function usePlyrPlayer(
   function destroy() {
     player?.destroy();
     player = undefined;
+    playerHost = null;
+    loadedVideoMedia = null;
     playback.localIdle();
   }
 

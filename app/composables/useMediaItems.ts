@@ -13,6 +13,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
   const uiStore = useUiStore();
 
   const loading = ref(true);
+  const subtitleLoading = ref(false);
   const videoMedia = ref<Video | null>(null);
   const subtitleMedia = ref<Video | null>(null);
 
@@ -31,10 +32,17 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
       return;
     }
     const { languageAgnosticNaturalKey: lank } = uiStore.selectedVideo;
-    loading.value = true;
+    const needVideo = !videoMedia.value;
+    const needSubtitle = !subtitleMedia.value;
+
+    // Only a missing video media blanks the player frame; a subtitle-only fetch
+    // must leave the live player mounted so its track can be swapped in place
+    loading.value = needVideo;
+    subtitleLoading.value = needSubtitle;
+
     const requests: Promise<void>[] = [];
 
-    if (!videoMedia.value) {
+    if (needVideo) {
       requests.push(
         fetchMediaItem(languageStore.videoLanguageInfo.code, lank).then(media => {
           if (media) {
@@ -43,7 +51,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
         }),
       );
     }
-    if (!subtitleMedia.value) {
+    if (needSubtitle) {
       requests.push(
         fetchMediaItem(languageStore.subtitleLanguageInfo.code, lank).then(media => {
           if (media) {
@@ -55,6 +63,7 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
 
     await Promise.allSettled(requests);
     loading.value = false;
+    subtitleLoading.value = false;
   }
 
   // New video selected — reset and reload
@@ -87,15 +96,15 @@ export function useMediaItems(onBeforeLanguageReload?: () => void) {
     },
   );
 
-  // Subtitle language changed
+  // Subtitle language changed. No resume capture here: the player is not
+  // rebuilt for this, the subtitle track is swapped in place.
   watch(
     () => languageStore.subtitleLanguage,
     () => {
-      onBeforeLanguageReload?.();
       subtitleMedia.value = null;
       loadMediaItems();
     },
   );
 
-  return { loading, videoMedia, subtitleMedia, captionUrl, subtitleUrl };
+  return { loading, subtitleLoading, videoMedia, subtitleMedia, captionUrl, subtitleUrl };
 }

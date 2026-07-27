@@ -45,7 +45,7 @@
             class="count-skeleton pt-1 pb-2"
             :loading="isLoading"
             type="text"
-            :width="smAndDown ? undefined : 160"
+            :width="smAndDown ? undefined : 200"
           />
         </v-col>
 
@@ -65,7 +65,7 @@
         </v-col>
       </v-row>
 
-      <v-card-text class="results-scroll pa-4">
+      <v-card-text ref="scrollEl" class="results-scroll pa-4">
         <!-- Search error -->
         <v-alert v-if="hasError" class="mb-4" type="error" variant="tonal">
           {{ languageStore.t('searchFailed') }}
@@ -154,6 +154,13 @@ const response = ref<SearchResponse | null>(null);
 const results = ref<SearchResult[]>([]);
 const offset = ref(0);
 const exhausted = ref(false);
+const scrollEl = ref<{ $el: HTMLElement } | null>(null);
+
+// A new query keeps the old scrollTop, which leaves the sentinel in view and
+// chain-loads pages until the fresh list is tall enough to push it back down
+function resetScroll() {
+  scrollEl.value?.$el?.scrollTo({ top: 0 });
+}
 
 const dialog = computed({
   get: () => uiStore.searchDialog,
@@ -247,6 +254,7 @@ async function fetchResponse(query: string, { append = false, retried = false } 
   else {
     isLoading.value = true;
     exhausted.value = false;
+    resetScroll();
   }
   hasError.value = false;
   try {
@@ -266,6 +274,10 @@ async function fetchResponse(query: string, { append = false, retried = false } 
     data.results = data.results.filter(r => r.subtype !== 'videoCategory');
     response.value = data;
     results.value = append ? [...results.value, ...data.results] : data.results;
+    if (!append) {
+      await nextTick();
+      resetScroll();
+    }
   }
   catch (error) {
     if (id !== requestId) {
