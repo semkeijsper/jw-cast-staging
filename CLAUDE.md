@@ -38,13 +38,14 @@ pnpm dev              # Start dev server with hot reload
 pnpm build            # Static SPA build into .output/public/ (github_pages preset)
 pnpm lint             # Run ESLint (lint:fix to autofix)
 pnpm preview          # Preview the built output
-pnpm test             # Run the Vitest suite once (test:watch for watch mode)
+pnpm test             # Run the unit + nuxt Vitest projects (test:watch for watch mode)
+pnpm test:e2e         # Run the browser suite (builds the app, needs network)
 pnpm deploy:staging   # Force-push the current branch to the staging mirror
 ```
 
 `build` uses nitro's `github_pages` preset rather than plain `nuxt generate`. The output is identical except for a `.nojekyll` marker — which is load-bearing: without it a branch-based Pages deploy runs Jekyll, and Jekyll drops `_`-prefixed directories, i.e. all of `_nuxt/` and `_fonts/`.
 
-Automated tests run under **Vitest** (see the Testing section). Ad-hoc browser verification against the dev server can still be done with one-off Playwright scripts.
+Automated tests run under **Vitest** (see the Testing section), including the browser suite — `pnpm test` stays fast and offline, `pnpm test:e2e` is the opt-in real-browser run.
 
 ## Repository Structure
 
@@ -112,7 +113,8 @@ public/
 test/                                # Vitest suites (see Testing)
 ├── setup.ts                         # happy-dom browser-API stubs for the nuxt project
 ├── unit/                            # Pure-function specs (plain Node)
-└── nuxt/                            # Store + component specs (Nuxt env, mountSuspended)
+├── nuxt/                            # Store + component specs (Nuxt env, mountSuspended)
+└── e2e/                             # Real-browser player specs (opt-in, see Testing)
 build/
 └── prerender-seo.ts                 # Build-time head patcher for prerendered shells (see SEO)
 .github/workflows/
@@ -333,14 +335,25 @@ Mobile ergonomics: the dialog auto-enters fullscreen when the device rotates to 
 
 ## Testing
 
-Vitest, wired through `@nuxt/test-utils`. `vitest.config.ts` defines two projects so the fast pure-function specs don't pay the Nuxt-runtime cost:
+Vitest, wired through `@nuxt/test-utils`. `vitest.config.ts` defines three projects so the fast pure-function specs don't pay the Nuxt-runtime cost:
 
 - **`unit`** (`test/unit/`) — plain Node environment, `~`/`@` aliased to `app/`. Pure functions only: `parseVtt`, `formatTime`, `downloadableFiles`, `languageLabel`, `parseVideoLink`/`sortKeyOf`, `activeCueIndex`/`highlightSegments`.
 - **`nuxt`** (`test/nuxt/`) — happy-dom-backed Nuxt environment so source auto-imports and the `~` alias resolve. Pinia store specs (`playback`, `ui`, `language`) and component specs via `mountSuspended` (`VideoCard`, `TranscriptPanel`, `SearchDialog`). `test/setup.ts` stubs the browser APIs Vuetify touches on mount (`ResizeObserver`/`IntersectionObserver`/`matchMedia`/`scrollTo`/`scrollIntoView`).
+- **`e2e`** (`test/e2e/`) — see below.
 
-No network, no external SDKs, no real Chromecast. Run with `pnpm test` (`test:watch` for watch mode). Pull embedded pure logic out into `utils/` so it can be unit-tested cheaply rather than mounting components to reach it (that's why `searchLink.ts` and `transcript.ts` exist). Vuetify text inputs don't drive their `v-model` under happy-dom, so filter/search interactions are covered by unit tests, not by mounting.
+`unit` and `nuxt` are what `pnpm test` runs: no network, no external SDKs, no real Chromecast. Pull embedded pure logic out into `utils/` so it can be unit-tested cheaply rather than mounting components to reach it (that's why `searchLink.ts` and `transcript.ts` exist). Vuetify text inputs don't drive their `v-model` under happy-dom, so filter/search interactions are covered by unit tests, not by mounting.
 
-There is no E2E suite in-repo — an earlier Playwright harness was removed. Manual browser checks are done with one-off Playwright scripts against the dev server.
+### Browser suite (`pnpm test:e2e`)
+
+`test/e2e/` drives a real browser via `setup({ browser: true })` + `createPage()` from `@nuxt/test-utils/e2e` — still Vitest, not a second runner (`playwright-core` is the only extra dep). It exists because the player's core guarantee is unprovable in happy-dom: a subtitle-language switch must swap the `<track>` on the *live* media element rather than rebuild Plyr, and only a real media pipeline has text tracks, cue rendering and a buffer to lose. The specs assert the media element is never replaced (`sameMedia`) and never `emptied`.
+
+**It is opt-in and excluded from `pnpm test`** because it builds the app and hits jw.org's live API — an offline `pnpm test` stays the fast default.
+
+- Drives the installed Edge (`channel: 'msedge'`); set `E2E_BROWSER_CHANNEL=""` to use Playwright's bundled Chromium instead (needs a separate `playwright install`).
+- Autoplay is unblocked with `--autoplay-policy=no-user-gesture-required`; specs call `video.play()` muted themselves.
+- The video is **pinned by lank** (`VIDEO_LANK` in `test/e2e/helpers.ts`) so specs don't depend on the weekly catalog rotation. Language option labels and "a language with no subtitles for this video" are **discovered from the API at runtime**, never hardcoded — jw.org's copy and per-language subtitle coverage both drift.
+- The specs share one player session and run in order (`fileParallelism: false`, `sequence.concurrent: false`); each starts from the previous one's end state.
+- Chromecast is still out of scope — exclusive-cast and handoff need real hardware.
 
 ## Patches
 
@@ -391,7 +404,7 @@ So: **keep staging-specific behavior in the workflow, never in a commit.** An ov
 
 - **Do not use the Options API or Class Components** — `<script setup>` is the standard
 - **Do not add Vuex** — the project uses Pinia
-- **Do not add another test framework** — Vitest (via `@nuxt/test-utils`) is the standard; add specs to `test/unit` or `test/nuxt`
+- **Do not add another test framework** — Vitest (via `@nuxt/test-utils`) is the standard; add specs to `test/unit`, `test/nuxt` or `test/e2e`. In particular don't add `@playwright/test`: the browser suite runs Playwright *through* Vitest
 - **Do not inline API URLs in components** — add or reuse a wrapper in `utils/api.ts`
 - **Do not hardcode user-facing strings** — use `languageStore.t(key)` + `config/uiStrings.ts`
 - **Do not rename the persisted store fields or the `'app'` persist key** (see State Management)
