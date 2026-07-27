@@ -22,7 +22,7 @@
       <v-list-subheader>{{ languageStore.t('chromecast') }}</v-list-subheader>
 
       <v-list-item
-        v-for="file in downloadableFiles(videoMedia)"
+        v-for="file in downloadableFiles(videoMedia).reverse()"
         :key="file.checksum"
         prepend-icon="mdi-cast"
         :title="file.label"

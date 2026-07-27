@@ -10,12 +10,14 @@
       <v-list-subheader>{{ languageStore.t('btnDownload') }}</v-list-subheader>
 
       <v-list-item
-        v-for="file in downloadableFiles(videoMedia)"
+        v-for="file in downloadableFiles(videoMedia).reverse()"
         :key="file.checksum"
         :href="file.progressiveDownloadURL"
         prepend-icon="mdi-download"
         :title="`${file.label} (${Math.floor(file.filesize / 1048576)} MB)`"
       />
+
+      <v-divider class="my-1" />
 
       <v-list-item
         :disabled="!subtitleUrl"
