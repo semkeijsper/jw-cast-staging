@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import VideoCard from '~/components/browse/VideoCard.vue';
 
 describe('VideoCard', () => {
-  it('renders the title and emits click', async () => {
+  it('renders the title and emits click', async() => {
     const wrapper = await mountSuspended(VideoCard, {
       props: { src: 'https://img.test/x.jpg', title: 'My Video' },
     });

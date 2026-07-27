@@ -7,7 +7,7 @@ import * as api from '~/utils/api';
 
 // Auto-imported api wrappers hit the network; stub the ones SearchDialog uses.
 vi.mock('~/utils/api', async importOriginal => ({
-  ...(await importOriginal<typeof import('~/utils/api')>()),
+  ...(await importOriginal<typeof api>()),
   fetchToken: vi.fn().mockResolvedValue('jwt-token'),
   fetchSearch: vi.fn(),
   fetchMediaItem: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('~/utils/api', async importOriginal => ({
 afterEach(() => vi.clearAllMocks());
 
 describe('SearchDialog', () => {
-  it('fetches the search token lazily when the dialog first opens', async () => {
+  it('fetches the search token lazily when the dialog first opens', async() => {
     await mountSuspended(SearchDialog);
     const ui = useUiStore();
 

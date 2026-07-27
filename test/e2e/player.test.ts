@@ -27,7 +27,7 @@ const channel = process.env.E2E_BROWSER_CHANNEL ?? 'msedge';
  * The specs share one player session and run in order — each starts from where
  * the previous one left off.
  */
-describe('video player', async () => {
+describe('video player', async() => {
   await setup({
     browser: true,
     browserOptions: {
@@ -45,7 +45,7 @@ describe('video player', async () => {
   let noSubtitleLanguage: string;
   let openedTitle: string;
 
-  beforeAll(async () => {
+  beforeAll(async() => {
     ({ labels, withoutSubtitles: noSubtitleLanguage } = await resolveLanguages([SITE_LOCALE, 'es']));
 
     // Desktop viewport: the transcript control is only injected above smAndDown
@@ -57,11 +57,11 @@ describe('video player', async () => {
     await markMedia(page);
   }, 300_000);
 
-  afterAll(async () => {
+  afterAll(async() => {
     await page?.close();
   });
 
-  it('swaps the subtitle track in place, without reloading the media', async () => {
+  it('swaps the subtitle track in place, without reloading the media', async() => {
     const before = await playerState(page);
     expect(before.trackEls).toContain(`subtitles:${SITE_LOCALE}`);
 
@@ -78,7 +78,7 @@ describe('video player', async () => {
     expect(after.captionText.trim()).not.toBe('');
   });
 
-  it('drops the track for a language that has no subtitles, still without reloading', async () => {
+  it('drops the track for a language that has no subtitles, still without reloading', async() => {
     await pickLanguage(page, 'mdi-subtitles', noSubtitleLanguage);
     await waitForSubtitleTrack(page, null);
 
@@ -88,7 +88,7 @@ describe('video player', async () => {
     expect(after.paused).toBe(false);
   });
 
-  it('re-activates cues when switching back to a language that has them', async () => {
+  it('re-activates cues when switching back to a language that has them', async() => {
     await pickLanguage(page, 'mdi-subtitles', labels[SITE_LOCALE]!);
     await waitForSubtitleTrack(page, SITE_LOCALE);
     await waitForCues(page, SITE_LOCALE);
@@ -99,7 +99,7 @@ describe('video player', async () => {
     expect(after.activeTracks).toContain(`subtitles:${SITE_LOCALE}`);
   });
 
-  it('keeps a manual captions toggle across a subtitle switch', async () => {
+  it('keeps a manual captions toggle across a subtitle switch', async() => {
     await clickPlyrControl(page, '.plyr__control[data-plyr="captions"]');
     await page.waitForFunction(
       () => !document.querySelector('.plyr')?.classList.contains('plyr--captions-active'),
@@ -120,7 +120,7 @@ describe('video player', async () => {
     expect((await playerState(page)).captionsActive).toBe(true);
   });
 
-  it('keeps the playback position across an audio-language switch', async () => {
+  it('keeps the playback position across an audio-language switch', async() => {
     const before = await playerState(page);
 
     // A different audio language is a different file, so this one does reload
@@ -142,8 +142,8 @@ describe('video player', async () => {
     expect(await page.locator('.plyr__control--transcript').count()).toBe(1);
   });
 
-  it('resumes where it left off when the same video is reopened', async () => {
-    await page.evaluate(async () => {
+  it('resumes where it left off when the same video is reopened', async() => {
+    await page.evaluate(async() => {
       await (document.querySelector('.plyr video') as HTMLVideoElement).play();
     });
     await page.waitForTimeout(2000);
@@ -175,7 +175,7 @@ describe('video player', async () => {
     expect((await playerState(page)).currentTime).toBeGreaterThan(before.currentTime - 2);
   });
 
-  it('starts a different video from the beginning', async () => {
+  it('starts a different video from the beginning', async() => {
     const current = (await page.locator('.dialog-title').first().textContent()) ?? '';
     await page.locator('.v-toolbar .mdi-close').first().click();
     await page.waitForSelector('.plyr video', { state: 'detached', timeout: 15_000 });

@@ -1,5 +1,5 @@
-import type { Language } from '~/types';
 import type { Page } from 'playwright-core';
+import type { Language } from '~/types';
 import { languageLabel } from '~/utils/language';
 
 // Duplicated from utils/api.ts on purpose: that module is written against
@@ -95,7 +95,7 @@ export async function startPlayback(page: Page) {
     null,
     { timeout: 60_000 },
   );
-  await page.evaluate(async () => {
+  await page.evaluate(async() => {
     const video = document.querySelector('.plyr video') as HTMLVideoElement;
     video.muted = true;
     await video.play();
@@ -117,7 +117,9 @@ export async function markMedia(page: Page) {
     const probe = { mark: `mark-${Math.random()}`, emptied: 0 };
     (window as unknown as { __probe: typeof probe }).__probe = probe;
     video.__mark = probe.mark;
-    video.addEventListener('emptied', () => { probe.emptied += 1; });
+    video.addEventListener('emptied', () => {
+      probe.emptied += 1;
+    });
   });
 }
 
@@ -156,7 +158,7 @@ export async function pickLanguage(page: Page, icon: 'mdi-volume-high' | 'mdi-su
 /** Waits until the media carries a subtitles track for `locale`, or none at all */
 export async function waitForSubtitleTrack(page: Page, locale: string | null) {
   await page.waitForFunction(
-    (expected) => {
+    expected => {
       const video = document.querySelector('.plyr video');
       const track = video?.querySelector('track[kind="subtitles"]');
       return expected === null ? !track : track?.getAttribute('srclang') === expected;
@@ -169,7 +171,7 @@ export async function waitForSubtitleTrack(page: Page, locale: string | null) {
 /** Waits for Plyr to paint a cue from the track for `locale` */
 export async function waitForCues(page: Page, locale: string) {
   await page.waitForFunction(
-    (expected) => {
+    expected => {
       const video = document.querySelector('.plyr video') as HTMLVideoElement | null;
       const active = [...(video?.textTracks ?? [])].some(t => t.kind === 'subtitles' && t.language === expected && t.mode !== 'disabled');
       return active && (document.querySelector('.plyr__captions')?.textContent ?? '').trim().length > 0;
