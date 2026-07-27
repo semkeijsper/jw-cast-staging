@@ -280,7 +280,7 @@ The app stays `ssr: false`, but `nitro.prerender.routes` emits a static HTML she
 - Prerender routes are built as `` `${baseURL}${locale}` `` — nitro fetches them origin-absolute, so without the base the app just redirects and nitro saves a redirect stub instead of a shell.
 - The page (`[language]/[[videoId]].vue`) sets the same values via `useHead` so client-side language switches stay in sync.
 - Video routes are deliberately **not** prerendered: unbounded, and the content is jw.org's canonical material.
-- Adding a locale to `sitemap.xml` means adding it to `prerenderLocales` too (and ideally a `seoMeta` block, else it gets English copy).
+- **Four lists are kept identical:** `prerenderLocales`, the `seoMeta` blocks, `config/uiStrings.ts` blocks, and `public/sitemap.xml`. A locale is only advertised once it has real translated copy — no half-supported locales getting English meta. Adding one means all four, plus a `bcp47` entry in `seoMeta.ts` if the locale isn't already a valid BCP 47 tag. Locales outside the set still route and work at runtime (jw.org supplies the content strings); they just get no shell, no sitemap entry, and English `seoMeta` fallback.
 
 ## API Integration
 
