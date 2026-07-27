@@ -35,11 +35,14 @@ This file provides guidance for AI assistants working in this repository.
 ```bash
 pnpm install          # Install dependencies (also runs nuxt prepare)
 pnpm dev              # Start dev server with hot reload
-pnpm build            # Static SPA build into .output/public/
+pnpm build            # Static SPA build into .output/public/ (github_pages preset)
 pnpm lint             # Run ESLint (lint:fix to autofix)
 pnpm preview          # Preview the built output
 pnpm test             # Run the Vitest suite once (test:watch for watch mode)
+pnpm deploy:staging   # Force-push the current branch to the staging mirror
 ```
+
+`build` uses nitro's `github_pages` preset rather than plain `nuxt generate`. The output is identical except for a `.nojekyll` marker — which is load-bearing: without it a branch-based Pages deploy runs Jekyll, and Jekyll drops `_`-prefixed directories, i.e. all of `_nuxt/` and `_fonts/`.
 
 Automated tests run under **Vitest** (see the Testing section). Ad-hoc browser verification against the dev server can still be done with one-off Playwright scripts.
 
@@ -350,6 +353,8 @@ pnpm build
 # Output is in .output/public/
 git subtree push --prefix .output/public origin gh-pages
 ```
+
+This is a **branch-based** Pages deploy, so Jekyll runs over the pushed tree — `pnpm build` must keep emitting `.nojekyll` or `_nuxt/` and `_fonts/` are stripped and the site serves no JS or CSS (see Development Commands). Staging is immune: it deploys the build as a Pages artifact, which bypasses Jekyll entirely.
 
 `public/404.html` handles GitHub Pages' lack of server-side routing by encoding the path into a query param, which an inline head script in `nuxt.config.ts` restores before the router boots. `pathSegmentsToKeep` in 404.html is the number of leading path segments belonging to the deployment root (0 at a custom domain, 1 under a project page); the restore script prepends `baseURL` back onto the decoded path.
 

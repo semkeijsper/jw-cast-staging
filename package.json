@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt generate",
-    "build:gh": "nuxt build --preset github_pages",
+    "build": "nuxt build --preset github_pages",
     "deploy:staging": "git push staging HEAD:master --force",
     "dev": "nuxt dev",
     "lint": "eslint app",
