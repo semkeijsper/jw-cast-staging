@@ -31,34 +31,39 @@
       </v-toolbar>
 
       <!-- Fixed header: result count + sort (visible from open, stays while results scroll) -->
-      <div
+      <v-row
         v-if="!hasError && (!response || results.length > 0)"
-        class="sort-bar flex-grow-0 d-flex align-center justify-space-between px-4 py-2"
+        align="center"
+        class="sort-bar flex-grow-0 ga-2 ga-sm-0 px-4 py-2"
+        no-gutters
       >
-        <span v-if="results.length > 0" class="text-body-2 text-medium-emphasis">{{ resultCount }}</span>
+        <v-col class="py-1 pt-2" cols="12" sm="6">
+          <span v-if="results.length > 0" class="text-body-2 text-medium-emphasis">{{ resultCount }}</span>
 
-        <v-skeleton-loader
-          v-else-if="isLoading || !response"
-          class="count-skeleton"
-          type="text"
-          width="160"
-        />
+          <v-skeleton-loader
+            v-else-if="isLoading || !response"
+            class="count-skeleton pt-1 pb-2"
+            :loading="isLoading"
+            type="text"
+            :width="smAndDown ? undefined : 160"
+          />
+        </v-col>
 
-        <span v-else />
-
-        <v-select
-          v-model="sort"
-          class="sort-select flex-grow-0"
-          density="compact"
-          hide-details
-          item-title="label"
-          item-value="key"
-          :items="sortItems"
-          :list-props="{ density: 'compact' }"
-          prepend-icon="mdi-sort"
-          variant="outlined"
-        />
-      </div>
+        <v-col class="d-flex justify-sm-end" cols="12" sm="6">
+          <v-select
+            v-model="sort"
+            class="sort-select flex-grow-0"
+            density="compact"
+            hide-details
+            item-title="label"
+            item-value="key"
+            :items="sortItems"
+            :list-props="{ density: 'compact' }"
+            prepend-icon="mdi-sort"
+            variant="outlined"
+          />
+        </v-col>
+      </v-row>
 
       <v-card-text class="results-scroll pa-4">
         <!-- Search error -->
@@ -371,6 +376,12 @@ watch(
 }
 .sort-select {
   width: 220px;
+}
+/* Stacked on xs — the select takes the full row instead of a fixed column */
+@media (max-width: 599.98px) {
+  .sort-select {
+    width: 100%;
+  }
 }
 .count-skeleton :deep(.v-skeleton-loader__bone) {
   margin: 0;
