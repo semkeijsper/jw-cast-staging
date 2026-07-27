@@ -242,7 +242,19 @@ Mutations are `set*` functions. Async work stays in components/composables, call
 
 ## UI Strings
 
-`config/uiStrings.ts` holds all locally-owned shell strings, keyed by locale with an `en` block as the final fallback. `languageStore.t(key)` resolves: jw.org API translation → `uiStrings[locale]` → `uiStrings.en` → the key itself. Never hardcode user-facing strings in components — add a key to the dictionary. Translating the shell into a new language = adding one locale block.
+`config/uiStrings.ts` holds locally-owned shell strings, keyed by **locale** (the `Language.locale` string, e.g. `en`, `nl`, `es`, `cmn_hans` — the same value stored as `siteLanguage`). `languageStore.t(key)` resolves: jw.org API translation → `uiStrings[locale]` → `uiStrings.en` → the key itself. Never hardcode user-facing strings in components — add a key to the dictionary.
+
+**Key overlap with jw.org's translation API.** Many of our keys are *exact jw.org translation-key names* — `lnkSearch`, `btnDownload`, `hdgSubtitles`, `btnPlay`, `btnPlayWithSubtitles`, `btnPlayWithoutSubtitles`, `lnkHome`, `searchResultsCountText`, `noSearchResultsText`, `refineSearchResultsText`. For those, `t()` returns the fetched jw.org translation at runtime for **every** language, so they don't need per-locale entries. (Confirm a jw key exists before relying on this: `GET /translations/E` returns ~160 keys; grep it.)
+
+Consequences for adding a locale block:
+- **`en` is the fallback of last resort and MUST stay complete** — including the jw-overlap keys above. If the translations fetch fails, `en` is all that's left; a missing key would render the raw key string.
+- **Every other locale block only carries what jw.org does NOT provide**: the bespoke shell copy (`guide`, `searchPlaceholder`, `searchFailed`, `loadFailed`, `retry`, `noTranscript`, `noResults`, `transcript`) plus the three search **sort labels** (`sortRelevance` / `sortNewest` / `sortOldest`). Do not re-add jw-overlap keys to non-`en` blocks — they're redundant (runtime covers them, `en` covers failure).
+- **Sort labels come from the search API, verbatim.** jw.org has no translation key for them; fetch `search/results/:code/videos?...` and copy `sorts[].label` for `rel`/`newest`/`oldest` so the pre-query dropdown matches the labels the API returns post-query. (`SearchDialog` shows the sort dropdown before any query using these fallbacks; once a search runs, `response.sorts` labels take over.)
+- jw's positional placeholders are Java-style `%1$s`; `t()` does **no** interpolation — components substitute (see the `fmt` helper in `SearchDialog.vue`).
+
+**Locale coverage is traffic-driven, not publisher-driven.** Blocks currently cover `en, nl, es, pt, fr, de, it, ja, ko, ru, pl, tl, cmn_hans, da, fi` (~96–97% of actual site users per analytics; Netherlands dominates, then IT/US/BE/CL/CN/DK). When extending, check real analytics — biggest remaining gaps are Danish (added), Finnish (added), Hebrew (Israel; skipped — RTL, needs `isRTL` layout work). Language → jw `code`/`locale` mapping comes from `GET /languages/E/all` (e.g. Spanish=`S`/`es`, Portuguese-Brazil=`T`/`pt`, Chinese-Mandarin-Simplified=`CHS`/`cmn_hans`).
+
+Note: the Guide button resolves specially in `app.vue` (`uiStrings[locale]?.guide ?? translations.lnkHelpView ?? uiStrings.en.guide`) — a bespoke `guide` entry wins over jw's `lnkHelpView`.
 
 ## Routing
 
@@ -290,12 +302,14 @@ Mobile ergonomics: the dialog auto-enters fullscreen when the device rotates to 
 
 `search/SearchDialog.vue`:
 
-- Page size: 9 results (`LIMIT` constant); `v-pagination` drives page changes
-- Sort (relevance / newest / oldest) and new queries reset to page 1 (debounced 400ms)
-- Stale responses are discarded via a latest-wins request id
-- JWT is fetched lazily on first dialog open and refreshed on 401 with a single bounded retry
-- Pasted jw.org finder / media-items links open the video directly; failures surface the error alert
-- Failed searches show a `v-alert`; zero filtered results show a "no videos found" message
+- **Infinite scroll** (not pagination). Page size `LIMIT = 12`; results accumulate in a `results` array, `fetchResponse(query, { append })` pushes the next page. A `v-intersect` sentinel at the bottom of the scroll region fetches the next `offset` when it enters view; `hasMore` = `results.length < insight.total.value`.
+- **Layout is a fixed header + inner-scroll body.** `v-card` is a flex column; the `v-toolbar` (search field) and a sort bar stay pinned while a `v-card-text.results-scroll` scrolls. The scroll region is height-capped on desktop (`@media (min-width: 960px) { max-height: min(70vh, 600px) }`) so one page always overflows — otherwise on tall viewports the sentinel is visible at load and auto-fetches a 2nd page. Mobile dialog is fullscreen and fills.
+- **Header** shows a live count (`searchResultsCountText` → "shown of total", grows as pages append) and the sort `v-select`. Both render from dialog open — before any query the count is a `v-skeleton-loader` and the sort dropdown uses the `sort*` uiStrings fallbacks (see UI Strings).
+- Sort (relevance / newest / oldest) and new queries reset to `offset 0` + clear `results` (debounced 400ms).
+- Stale responses are discarded via a latest-wins request id.
+- JWT is fetched lazily on first dialog open and refreshed on 401 with a single bounded retry.
+- Pasted jw.org finder / media-items links open the video directly; failures surface the error alert.
+- Failed searches show a `v-alert`; zero results show the localized `noSearchResultsText` + `refineSearchResultsText`.
 
 ## Testing
 
