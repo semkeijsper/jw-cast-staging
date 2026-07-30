@@ -19,7 +19,7 @@ function escapeAttr(value: string): string {
 
 function setMeta(html: string, attr: 'name' | 'property', key: string, value: string): string {
   const content = escapeAttr(value);
-  const existing = new RegExp(`(<meta[^>]*\\s${attr}="${key}"[^>]*\\scontent=")[^"]*(")`);
+  const existing = new RegExp(String.raw`(<meta[^>]*\s${attr}="${key}"[^>]*\scontent=")[^"]*(")`);
   if (existing.test(html)) {
     return html.replace(existing, `$1${content}$2`);
   }
