@@ -45,7 +45,7 @@ const props = defineProps<{
 
 const languageStore = useLanguageStore();
 const uiStore = useUiStore();
-const { isAvailable: castAvailable, isAwaitingDevice, castMedia } = useCast();
+const { isAvailable: castAvailable, isAwaitingDevice, castMedia, castLog } = useCast();
 
 const tooltipText = computed(() =>
   props.subtitleUrl
@@ -55,6 +55,9 @@ const tooltipText = computed(() =>
 
 async function onSelectFile(file: MediaFile) {
   const title = uiStore.selectedVideo?.title ?? '';
+  // The click itself is traced: without it the log cannot tell "the user never
+  // got to press it" apart from "castMedia ran and hung"
+  castLog('quality picked', { label: file.label, castAvailable: castAvailable.value });
   await castMedia(
     file.progressiveDownloadURL,
     title,

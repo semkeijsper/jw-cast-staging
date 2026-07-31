@@ -11,7 +11,7 @@ export interface CastWindow {
       RemotePlayer: new () => RemotePlayer;
       RemotePlayerController: new (player: RemotePlayer) => RemotePlayerController;
       RemotePlayerEventType: { ANY_CHANGE: string };
-      CastContextEventType: { SESSION_STATE_CHANGED: string };
+      CastContextEventType: { SESSION_STATE_CHANGED: string; CAST_STATE_CHANGED: string };
       SessionEventType: { MEDIA_SESSION: string };
       SessionState: {
         SESSION_STARTING: string;
@@ -49,7 +49,13 @@ export interface CastContextInstance {
   requestSession: () => Promise<string | null | undefined>;
   getCurrentSession: () => CastSession | null;
   endCurrentSession: (stopCasting: boolean) => void;
-  addEventListener: (type: string, handler: (event: { sessionState: string }) => void) => void;
+  // NO_DEVICES_AVAILABLE / NOT_CONNECTED / CONNECTING / CONNECTED — the only
+  // way to tell whether the SDK has actually discovered anything to cast to
+  getCastState?: () => string;
+  addEventListener: (
+    type: string,
+    handler: (event: { sessionState: string; castState?: string }) => void,
+  ) => void;
 }
 
 export interface CastSession {

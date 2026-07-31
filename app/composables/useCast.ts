@@ -421,8 +421,14 @@ export function useCast() {
             }
           },
         );
+        // Whether any device has been discovered — a cast cannot start before
+        // this leaves NO_DEVICES_AVAILABLE, and nothing else reports it
+        context.addEventListener(
+          w.cast!.framework.CastContextEventType.CAST_STATE_CHANGED,
+          event => castLog('cast state', event.castState),
+        );
         isAvailable.value = true;
-        castLog('cast context configured');
+        castLog('cast context configured', { castState: context.getCastState?.() });
         // Auto-join can finish before Vue mounts and calls initCast, in which
         // case SESSION_RESUMED already fired with no listener attached
         if (context.getCurrentSession()) {
@@ -511,6 +517,7 @@ export function useCast() {
     startTime?: number,
     video?: Video | null,
   ): Promise<boolean> {
+    castLog('castMedia', { isAvailable: isAvailable.value, hasSubtitles: !!subtitleUrl, startTime });
     if (!isAvailable.value) {
       return false;
     }
@@ -554,6 +561,11 @@ export function useCast() {
         request.activeTrackIds = [1];
       }
 
+      castLog('requesting a session', {
+        hasCurrentSession: !!context.getCurrentSession(),
+        castState: context.getCastState?.(),
+      });
+
       if (context.getCurrentSession()) {
         // Already casting — no device picker opens, so enter the connecting
         // state now and load the new media into the running session.
@@ -569,12 +581,22 @@ export function useCast() {
         // The picker-open window has no SDK event, so the CastButton spinner is
         // driven manually across the pending requestSession promise.
         isAwaitingDevice.value = true;
+        // requestSession() has been seen to never settle at all, leaving the
+        // button spinning with no SDK event to explain it — say so in the trace
+        const stillPending = setTimeout(
+          () => castLog('requestSession STILL PENDING after 30s', {
+            castState: context.getCastState?.(),
+          }),
+          30_000,
+        );
         let errorCode: string | null | undefined;
         try {
           // Resolves with an ErrorCode rather than rejecting on some paths
           errorCode = await context.requestSession();
+          castLog('requestSession settled', { errorCode: errorCode ?? null });
         }
         finally {
+          clearTimeout(stillPending);
           isAwaitingDevice.value = false;
         }
         if (errorCode) {
@@ -585,6 +607,7 @@ export function useCast() {
       // requestSession() settles at SESSION_STARTING — the session itself lands
       // later, so getCurrentSession() here would usually still be null
       const session = await waitForSession();
+      castLog('session for load', { hasSession: !!session });
       if (!session) {
         throw new CastError('session_unavailable');
       }
@@ -599,6 +622,7 @@ export function useCast() {
       // before the media is actually loaded — isConnecting is cleared by
       // syncRemotePlayer once the receiver reports isMediaLoaded
       await session.loadMedia(request);
+      castLog('loadMedia accepted');
       hasCaptions.value = !!subtitleUrl;
       captionsEnabled.value = !!subtitleUrl;
       pendingCastVideo = null;
@@ -684,6 +708,7 @@ export function useCast() {
     clearCastError,
     castLogLines,
     castDebugEnabled,
+    castLog,
     clearCastLog,
     isMuted,
     volumeLevel,
