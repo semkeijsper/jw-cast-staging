@@ -202,6 +202,20 @@ describe('useCast — castMedia session handling', () => {
     await expect(cast()).resolves.toBe(false);
     expect(useCast().castError.value).toBe('receiver_unavailable');
   });
+
+  it('keeps a running cast when loading a different video into it fails', async () => {
+    // Casting A, switch to B, B fails to load: A is still on the receiver, so
+    // the slice must point back at A rather than going idle and hiding CastBar
+    const playback = usePlaybackStore();
+    sdk.currentSession = session;
+    playback.setCastConnecting('vid-A');
+    loadMedia.mockRejectedValueOnce({ code: 'load_failed' });
+
+    await expect(cast()).resolves.toBe(false);
+
+    expect(playback.cast.kind).not.toBe('idle');
+    expect(playback.castTargetKey).toBe('vid-A');
+  });
 });
 
 describe('useCast — resuming a session after a reload', () => {

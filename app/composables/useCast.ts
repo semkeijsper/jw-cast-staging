@@ -10,9 +10,11 @@ import type {
 /**
  * Google Cast Web Sender SDK composable.
  *
- * The Cast SDK is loaded via the <script> tag in nuxt.config.ts.
- * When it becomes ready, it calls window.__onGCastApiAvailable.
- * We use the Default Media Receiver (CC1AD845) — no app registration required.
+ * The Cast SDK is loaded via the <script> tag in nuxt.config.ts. Readiness is
+ * polled rather than taken from window.__onGCastApiAvailable — that global
+ * belongs to cast_sender.js, which captures it once and then replaces it with
+ * its own counter (see initCast). We use the Default Media Receiver
+ * (CC1AD845) — no app registration required.
  *
  * Falls back gracefully when no Chromecast is available.
  */
@@ -59,87 +61,52 @@ let resumeAdoptPoll: ReturnType<typeof setInterval> | null = null;
 // The receiver's media channel — a GET_STATUS here makes it broadcast the
 // MEDIA_STATUS that fills the session's media list
 const MEDIA_NAMESPACE = 'urn:x-cast:com.google.cast.media';
+// The single text track we ever attach, referenced again by toggleCaptions
+const SUBTITLE_TRACK_ID = 1;
 let mediaRequestId = 0;
+// Configuration must run exactly once. The readiness poll retries on failure,
+// and re-running it would stack a second set of listeners on the singleton
+// CastContext — every session event would then be handled twice.
+let castConfigured = false;
 
-// Opt-in trace for diagnosing cast problems on a deployed build, since none of
-// this can be exercised without real hardware: add ?castdebug to the URL, or
-// set localStorage.castDebug. Lines are mirrored into `castLogLines` so
-// CastDebugPanel can show them on a phone, where there is no console to read.
-const CAST_LOG_STORAGE_KEY = 'castDebugLog';
-const CAST_LOG_MAX_LINES = 300;
-const castLogLines = ref<string[]>([]);
-let castDebug: boolean | null = null;
-
-function castDebugEnabled() {
-  if (castDebug !== null) {
-    return castDebug;
-  }
-  try {
-    castDebug = window.location.search.includes('castdebug')
-      || window.localStorage.getItem('castDebug') !== null;
-  }
-  catch {
-    castDebug = false;
-  }
-  if (castDebug) {
-    // Carry the pre-reload lines over — the reload is the thing under test, so
-    // both halves of it have to end up in one copyable block
-    try {
-      const stored = window.sessionStorage.getItem(CAST_LOG_STORAGE_KEY);
-      castLogLines.value = stored ? JSON.parse(stored) : [];
-    }
-    catch {
-      castLogLines.value = [];
-    }
-    castLogLines.value.push('——————— page load ———————');
-  }
-  return castDebug;
+function castWindow() {
+  return window as unknown as CastWindow;
 }
 
-function formatLogArg(arg: unknown) {
-  if (typeof arg === 'string') {
-    return arg;
-  }
-  try {
-    return JSON.stringify(arg);
-  }
-  catch {
-    return String(arg);
-  }
-}
+/** Assemble the SDK's LoadRequest for an MP4 with optional VTT subtitles. */
+function buildLoadRequest(videoUrl: string, title: string, subtitleUrl?: string | null) {
+  const { media } = castWindow().chrome!.cast;
 
-function castLog(...args: unknown[]) {
-  if (!castDebugEnabled()) {
-    return;
-  }
-  console.info('[cast]', ...args);
-  const time = new Date().toISOString().slice(11, 23);
-  castLogLines.value.push(`${time} ${args.map(arg => formatLogArg(arg)).join(' ')}`);
-  if (castLogLines.value.length > CAST_LOG_MAX_LINES) {
-    castLogLines.value.splice(0, castLogLines.value.length - CAST_LOG_MAX_LINES);
-  }
-  try {
-    window.sessionStorage.setItem(CAST_LOG_STORAGE_KEY, JSON.stringify(castLogLines.value));
-  }
-  catch {
-    // Storage full or unavailable — the in-memory lines still render
-  }
-}
+  const mediaInfo = new media.MediaInfo(videoUrl, 'video/mp4');
+  const metadata = new media.GenericMediaMetadata();
+  metadata.title = title;
+  mediaInfo.metadata = metadata;
 
-// Failures always reach the console; the trace only mirrors them when enabled
-function reportCastError(message: string, error: unknown) {
-  console.error(`[cast] ${message}`, error);
-  castLog('ERROR', message, errorCodeOf(error));
-}
+  // Without an explicit style the Default Media Receiver renders subtitles in
+  // a monospaced font on some devices
+  const textTrackStyle = new media.TextTrackStyle();
+  textTrackStyle.fontGenericFamily = media.TextTrackFontGenericFamily.SANS_SERIF;
+  textTrackStyle.fontScale = 1;
+  textTrackStyle.foregroundColor = '#FFFFFFFF';
+  textTrackStyle.backgroundColor = '#00000000';
+  textTrackStyle.edgeType = media.TextTrackEdgeType.OUTLINE;
+  textTrackStyle.edgeColor = '#000000FF';
+  mediaInfo.textTrackStyle = textTrackStyle;
 
-function clearCastLog() {
-  castLogLines.value = [];
-  try {
-    window.sessionStorage.removeItem(CAST_LOG_STORAGE_KEY);
+  if (subtitleUrl) {
+    const track = new media.Track(SUBTITLE_TRACK_ID, media.TrackType.TEXT);
+    track.trackContentId = subtitleUrl;
+    track.trackContentType = 'text/vtt';
+    track.subtype = media.TextTrackType.SUBTITLES;
+    track.name = 'Subtitles';
+    mediaInfo.tracks = [track];
   }
-  catch {
-    // Nothing to do — the in-memory lines are already cleared
+
+  const request = new media.LoadRequest(mediaInfo);
+  if (subtitleUrl) {
+    request.activeTrackIds = [SUBTITLE_TRACK_ID];
   }
+  return request;
 }
 
 function settleSessionWaiters(session: CastSession | null) {
@@ -148,28 +115,6 @@ function settleSessionWaiters(session: CastSession | null) {
   for (const settle of waiters) {
     settle(session);
   }
-}
-
-class CastError extends Error {
-  constructor(public readonly code: string) {
-    super(`cast failed: ${code}`);
-    this.name = 'CastError';
-  }
-}
-
-// The SDK is inconsistent: it rejects with a bare ErrorCode string on some
-// paths and with a chrome.cast.Error object on others
-function errorCodeOf(error: unknown): string {
-  if (error instanceof CastError) {
-    return error.code;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  if (error && typeof error === 'object' && typeof (error as { code?: unknown }).code === 'string') {
-    return (error as { code: string }).code;
-  }
-  return 'unknown';
 }
 
 export function useCast() {
@@ -249,7 +194,7 @@ export function useCast() {
     if (!videoKey || playback.cast.kind !== 'idle' || resumeAdoptPoll !== null) {
       return;
     }
-    const w = window as unknown as CastWindow;
+    const w = castWindow();
     const context = w.cast!.framework.CastContext.getInstance();
     const session = context.getCurrentSession();
     castLog('restoreResumedSession', { videoKey, hasSession: !!session });
@@ -353,10 +298,10 @@ export function useCast() {
   }
 
   function initCast() {
-    const w = window as unknown as CastWindow;
+    const w = castWindow();
 
     const configureCast = () => {
-      if (isAvailable.value) {
+      if (castConfigured) {
         return;
       }
       try {
@@ -365,6 +310,11 @@ export function useCast() {
           receiverApplicationId: 'CC1AD845',
           autoJoinPolicy: w.chrome!.cast.AutoJoinPolicy.ORIGIN_SCOPED,
         });
+        // Casting is possible from here on, and this is the only step worth
+        // retrying — latch so a later failure cannot re-enter and duplicate
+        // the listeners below
+        castConfigured = true;
+        isAvailable.value = true;
         remotePlayer = new w.cast!.framework.RemotePlayer();
         remotePlayerController = new w.cast!.framework.RemotePlayerController(remotePlayer);
         remotePlayerController.addEventListener(
@@ -427,7 +377,6 @@ export function useCast() {
           w.cast!.framework.CastContextEventType.CAST_STATE_CHANGED,
           event => castLog('cast state', event.castState),
         );
-        isAvailable.value = true;
         castLog('cast context configured', { castState: context.getCastState?.() });
         // Auto-join can finish before Vue mounts and calls initCast, in which
         // case SESSION_RESUMED already fired with no listener attached
@@ -436,8 +385,8 @@ export function useCast() {
         }
       }
       catch (error) {
-        // Both globals were present but configuration still failed. Leave
-        // isAvailable false so the readiness poll retries on the next tick.
+        // Before the latch this leaves isAvailable false and the poll retries;
+        // after it, casting still works and only the extras are missing
         reportCastError('configuring the Cast context failed', error);
       }
     };
@@ -484,7 +433,7 @@ export function useCast() {
    * null when the session start fails, ends, or the receiver never comes up.
    */
   function waitForSession(timeoutMs = 15_000): Promise<CastSession | null> {
-    const w = window as unknown as CastWindow;
+    const w = castWindow();
     const context = w.cast!.framework.CastContext.getInstance();
     const existing = context.getCurrentSession();
     if (existing) {
@@ -525,41 +474,17 @@ export function useCast() {
     castError.value = null;
     pendingStartTime = startTime ?? 0;
     pendingCastVideo = video ?? null;
-    try {
-      const w = window as unknown as CastWindow;
-      const context = w.cast!.framework.CastContext.getInstance();
+    // The slice as it stands before this attempt: if a *different* video is
+    // already casting, a failure here must not wipe it — the receiver keeps
+    // playing it either way
+    const previousCastKey = playback.cast.kind === 'idle' ? null : playback.cast.videoKey;
 
+    try {
+      const w = castWindow();
+      const context = w.cast!.framework.CastContext.getInstance();
       // Built before the session is requested so the load request is ready to
       // fire the moment a usable session lands
-      const mediaInfo = new w.chrome!.cast.media.MediaInfo(videoUrl, 'video/mp4');
-      const metadata = new w.chrome!.cast.media.GenericMediaMetadata();
-      metadata.title = title;
-      mediaInfo.metadata = metadata;
-
-      // Without an explicit style the Default Media Receiver renders
-      // subtitles in a monospaced font on some devices
-      const textTrackStyle = new w.chrome!.cast.media.TextTrackStyle();
-      textTrackStyle.fontGenericFamily = w.chrome!.cast.media.TextTrackFontGenericFamily.SANS_SERIF;
-      textTrackStyle.fontScale = 1;
-      textTrackStyle.foregroundColor = '#FFFFFFFF';
-      textTrackStyle.backgroundColor = '#00000000';
-      textTrackStyle.edgeType = w.chrome!.cast.media.TextTrackEdgeType.OUTLINE;
-      textTrackStyle.edgeColor = '#000000FF';
-      mediaInfo.textTrackStyle = textTrackStyle;
-
-      if (subtitleUrl) {
-        const track = new w.chrome!.cast.media.Track(1, w.chrome!.cast.media.TrackType.TEXT);
-        track.trackContentId = subtitleUrl;
-        track.trackContentType = 'text/vtt';
-        track.subtype = w.chrome!.cast.media.TextTrackType.SUBTITLES;
-        track.name = 'Subtitles';
-        mediaInfo.tracks = [track];
-      }
-
-      const request = new w.chrome!.cast.media.LoadRequest(mediaInfo);
-      if (subtitleUrl) {
-        request.activeTrackIds = [1];
-      }
+      const request = buildLoadRequest(videoUrl, title, subtitleUrl);
 
       castLog('requesting a session', {
         hasCurrentSession: !!context.getCurrentSession(),
@@ -638,7 +563,14 @@ export function useCast() {
       isConnecting.value = false;
       pendingStartTime = 0;
       pendingCastVideo = null;
-      playback.castIdle();
+      if (previousCastKey) {
+        // Something else is still on the receiver — point the slice back at it
+        // and let the RemotePlayer events promote it to active again
+        playback.setCastConnecting(previousCastKey, playback.lastCastPosition);
+      }
+      else {
+        playback.castIdle();
+      }
       return false;
     }
   }
@@ -678,14 +610,14 @@ export function useCast() {
   }
 
   function toggleCaptions() {
-    const w = window as unknown as CastWindow;
+    const w = castWindow();
     const mediaSession = w.cast?.framework.CastContext.getInstance()
       .getCurrentSession()
       ?.getMediaSession();
     if (!mediaSession || !hasCaptions.value) {
       return;
     }
-    const activeTrackIds = captionsEnabled.value ? [] : [1];
+    const activeTrackIds = captionsEnabled.value ? [] : [SUBTITLE_TRACK_ID];
     const request = new w.chrome!.cast.media.EditTracksInfoRequest(activeTrackIds);
     mediaSession.editTracksInfo(
       request,
@@ -697,7 +629,7 @@ export function useCast() {
   }
 
   function stopCasting() {
-    const w = window as unknown as CastWindow;
+    const w = castWindow();
     w.cast?.framework.CastContext.getInstance().endCurrentSession(true);
   }
 
@@ -706,10 +638,6 @@ export function useCast() {
     isAwaitingDevice,
     castError,
     clearCastError,
-    castLogLines,
-    castDebugEnabled,
-    castLog,
-    clearCastLog,
     isMuted,
     volumeLevel,
     canSeek,

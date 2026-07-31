@@ -45,7 +45,7 @@ const props = defineProps<{
 
 const languageStore = useLanguageStore();
 const uiStore = useUiStore();
-const { isAvailable: castAvailable, isAwaitingDevice, castMedia, castLog } = useCast();
+const { isAvailable: castAvailable, isAwaitingDevice, castMedia } = useCast();
 
 const tooltipText = computed(() =>
   props.subtitleUrl

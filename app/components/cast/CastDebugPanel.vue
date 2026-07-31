@@ -39,7 +39,6 @@
 </template>
 
 <script setup lang="ts">
-const { castLogLines, castDebugEnabled, clearCastLog } = useCast();
 
 const enabled = ref(false);
 const collapsed = ref(false);
