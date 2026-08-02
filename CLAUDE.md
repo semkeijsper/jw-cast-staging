@@ -4,12 +4,19 @@ This file provides guidance for AI assistants working in this repository.
 
 ## Project Overview
 
-**jw-cast** is a Nuxt 4 + Vue 3 + TypeScript single-page application that provides a frontend interface for browsing and playing Jehovah's Witnesses media from jw.org. Users can independently select the audio language and subtitle language for videos, and watch via the embedded Plyr player, native Chromecast (Google Cast SDK), or download via VLC.
+**jw-cast** is a frontend for browsing and playing Jehovah's Witnesses media from jw.org. Users can independently select the audio language and subtitle language for videos, and watch via the embedded Plyr player, native Chromecast (Google Cast SDK), or download via VLC. There is **no backend** — it is a pure client-side app consuming jw.org's public API directly.
 
-- **Live site:** https://jwcast.semdev.nl
-- **Staging:** https://semkeijsper.github.io/jw-cast-staging/ (mirror repo, see Deployment → Staging)
-- **Deployment:** `pnpm run build` → `git subtree push --prefix .output/public origin gh-pages`
-- **No backend:** pure client-side app consuming jw.org's public API directly
+**This repo currently holds two different apps, on two branches.** Everything below documents the rework, not the live production app:
+
+| | `master` | `feature/nuxt-4-migration` (this branch) |
+|---|---|---|
+| App | The **old** Vue 2 + Vuetify 2 build | The rework: Nuxt 4 + Vue 3 + Vuetify 4 + TypeScript |
+| Deployed at | https://jwcast.semdev.nl — **live, ~300 unique users/month** | https://semkeijsper.github.io/jw-cast-staging/ |
+| How | `git subtree push` to this repo's `gh-pages` branch (Jekyll-served) | Force-push to the `jw-cast-staging` mirror repo, which builds and deploys via Actions |
+
+The rework has **no production deploy yet** — staging is the only place it runs. Treat the live Vue 2 site on `master` as untouchable: it serves real users and none of the work described here has shipped to it.
+
+**Why staging lives in a second repo:** GitHub allows one Pages site per repo, and this repo's is already taken by the legacy `gh-pages` deploy. So `semkeijsper/jw-cast-staging` exists purely to host a second Pages site (see Deployment → Staging).
 
 ## Tech Stack
 
@@ -40,10 +47,10 @@ pnpm lint             # Run ESLint (lint:fix to autofix)
 pnpm preview          # Preview the built output
 pnpm test             # Run the unit + nuxt Vitest projects (test:watch for watch mode)
 pnpm test:e2e         # Run the browser suite (builds the app, needs network)
-pnpm deploy:staging   # Force-push the current branch to the staging mirror
+pnpm deploy:staging   # Force-push the current branch to the staging mirror (the only deploy this branch has)
 ```
 
-`build` uses nitro's `github_pages` preset rather than plain `nuxt generate`. The output is identical except for a `.nojekyll` marker — which is load-bearing: without it a branch-based Pages deploy runs Jekyll, and Jekyll drops `_`-prefixed directories, i.e. all of `_nuxt/` and `_fonts/`.
+`build` uses nitro's `github_pages` preset rather than plain `nuxt generate`. The output is identical except for a `.nojekyll` marker. Staging doesn't need it (an artifact deploy never runs Jekyll), but keep it: a *branch-based* Pages deploy does run Jekyll, and Jekyll drops `_`-prefixed directories — i.e. all of `_nuxt/` and `_fonts/` — so the marker is load-bearing the day this branch takes over the production Pages site.
 
 Automated tests run under **Vitest** (see the Testing section), including the browser suite — `pnpm test` stays fast and offline, `pnpm test:e2e` is the opt-in real-browser run.
 
@@ -374,42 +381,37 @@ Vitest, wired through `@nuxt/test-utils`. `vitest.config.ts` defines three proje
 
 ## Deployment
 
-```bash
-pnpm build
-# Output is in .output/public/
-git subtree push --prefix .output/public origin gh-pages
-```
-
-This is a **branch-based** Pages deploy, so Jekyll runs over the pushed tree — `pnpm build` must keep emitting `.nojekyll` or `_nuxt/` and `_fonts/` are stripped and the site serves no JS or CSS (see Development Commands). Staging is immune: it deploys the build as a Pages artifact, which bypasses Jekyll entirely.
-
-`public/404.html` handles GitHub Pages' lack of server-side routing by encoding the path into a query param, which an inline head script in `nuxt.config.ts` restores before the router boots. `pathSegmentsToKeep` in 404.html is the number of leading path segments belonging to the deployment root (0 at a custom domain, 1 under a project page); the restore script prepends `baseURL` back onto the decoded path.
-
-### Staging
-
-`semkeijsper/jw-cast-staging` is a **pure mirror** — its `master` is an exact copy of whatever branch is under test, with **no commits of its own**. Deploy the current branch with:
+**Staging is the only deploy target for this branch.** Production (https://jwcast.semdev.nl) still serves the Vue 2 app built from `master`, deployed by `git subtree push --prefix dist origin gh-pages` from that branch — that is `master`'s workflow and has nothing to do with the code here. Do not push this branch's build output to `gh-pages`; it would replace the live site for its ~300 monthly users.
 
 ```bash
+pnpm build              # → .output/public/
 pnpm deploy:staging     # git push staging HEAD:master --force
 ```
 
-Needs the remote once: `git remote add staging https://github.com/semkeijsper/jw-cast-staging.git`. The force is intended — staging holds nothing worth keeping, and `--force-with-lease` would just fail on the first push from a different branch.
+Needs the remote once: `git remote add staging https://github.com/semkeijsper/jw-cast-staging.git`.
 
-Everything that differs between the two deploys is applied at build time by `.github/workflows/staging.yml` (which lives in *this* repo, guarded by `if: github.repository == 'semkeijsper/jw-cast-staging'` so it never runs here):
+`semkeijsper/jw-cast-staging` is a **pure mirror** — its `master` is an exact copy of whatever branch is under test, with **no commits of its own**. Pushing to it triggers `.github/workflows/staging.yml`, which installs, builds, and deploys the result as a **Pages artifact** (so Jekyll never runs, unlike the legacy branch-based production deploy). The force-push is intended — staging holds nothing worth keeping, and `--force-with-lease` would just fail on the first push from a different branch.
+
+`public/404.html` handles GitHub Pages' lack of server-side routing by encoding the path into a query param, which an inline head script in `nuxt.config.ts` restores before the router boots. `pathSegmentsToKeep` in 404.html is the number of leading path segments belonging to the deployment root (0 at a custom domain, 1 under a project page like staging); the restore script prepends `baseURL` back onto the decoded path.
+
+### Staging build differences
+
+The staging workflow lives in *this* repo (so the mirror needs no commits of its own) and is guarded by `if: github.repository == 'semkeijsper/jw-cast-staging'` on both jobs, so it never runs here. Everything that differs between a staging build and the eventual production build is applied there at build time:
 
 | Difference | How |
 |---|---|
 | Served from `/jw-cast-staging/`, not `/` | `NUXT_APP_BASE_URL` — feeds `app.baseURL`, the head `link` hrefs, the 404 restore script, and the prerender routes |
-| Canonical/OG point at the staging origin | `NUXT_PUBLIC_SITE_URL` — read by `config/seoMeta.ts`; mirrored into `vite.define` so the client bundle sees it too (`process.env` is an empty shim in the browser) |
-| No custom domain | `rm .output/public/CNAME` |
+| Canonical/OG point at the staging origin | `NUXT_PUBLIC_SITE_URL` — read by `config/seoMeta.ts` (which otherwise defaults to `https://jwcast.semdev.nl`, the future production origin); mirrored into `vite.define` so the client bundle sees it too (`process.env` is an empty shim in the browser) |
+| No custom domain | `rm .output/public/CNAME` — `public/CNAME` still holds `jwcast.semdev.nl` for the eventual cutover |
 | Extra path segment in 404 fallback | `sed` `pathSegmentsToKeep` 0 → 1 |
 | Kept out of search results | `robots.txt` `Disallow: /`, sitemap removed, `robots` meta sed to `noindex, nofollow` |
 
-So: **keep staging-specific behavior in the workflow, never in a commit.** An overlay commit would have to be rebased on every update; this way there is nothing to rebase.
+So: **keep staging-specific behavior in the workflow, never in a commit.** The mirror is an exact copy of the branch under test; an overlay commit would have to be rebased on every update, and this way there is nothing to rebase.
 
 ## Git Workflow
 
-- Default branch: `master`
-- **Feature work currently branches off, and PRs target, `feature/nuxt-4-migration` — not `master`.** That branch is the integration target until the migration lands; opening a PR against `master` would drag the migration diff in with it. Revert to `master` once it is merged.
+- Repo default branch: `master` — but that is the **legacy Vue 2 app**, not a base for this work. Never branch off it, merge it in, or target it with a PR from here.
+- **This branch, `feature/nuxt-4-migration`, is the trunk for the rework**: feature work branches off it and PRs target it. It becomes the new `master` when the migration ships; revisit these instructions then.
 - Commit style: lowercase imperative with optional scope (`feat(search): add pagination`)
 - No pre-commit hooks
 
